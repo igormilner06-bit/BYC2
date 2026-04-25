@@ -134,8 +134,9 @@ let tg = window.Telegram?.WebApp;
 if (tg) tg.expand();
 
 let userId = "guest";
-if (tg?.initDataUnsafe?.user) {
-    userId = tg.initDataUnsafe.user.id.toString();
+
+if (tg && tg.initDataUnsafe && tg.initDataUnsafe.user) {
+    userId = "tg_" + tg.initDataUnsafe.user.id;
 }
 
 // игра

@@ -52,16 +52,16 @@ const db = getFirestore(app);
 
 // Telegram
 const tg = window.Telegram?.WebApp;
-if (tg) tg.expand();
-console.log("USER DEBUG:", tg?.initDataUnsafe?.user);
-// USER ID (ВАЖНО)
-let userId = "guest";
+
+tg?.ready?.();   // ВАЖНО
+
+let userId = "test";
 
 if (tg?.initDataUnsafe?.user?.id) {
     userId = "tg_" + tg.initDataUnsafe.user.id;
-} else {
-    userId = "test_" + Math.random().toString(36).slice(2,8);
 }
+console.log("TG INIT DATA:", tg?.initDataUnsafe);
+console.log("USER ID:", userId);
 
 // GAME
 let game = {

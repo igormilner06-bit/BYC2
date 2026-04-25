@@ -54,7 +54,7 @@ const db = getFirestore(app);
 const tg = window.Telegram?.WebApp;
 
 tg?.ready?.();   // ВАЖНО
-
+alert(JSON.stringify(window.Telegram?.WebApp?.initDataUnsafe));
 let userId = "test";
 
 if (tg?.initDataUnsafe?.user?.id) {

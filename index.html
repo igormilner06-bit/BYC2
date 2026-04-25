@@ -133,11 +133,21 @@ const db = getFirestore(app);
 let tg = window.Telegram?.WebApp;
 if (tg) tg.expand();
 
-let userId = "guest";
+let userId;
 
-if (tg && tg.initDataUnsafe && tg.initDataUnsafe.user) {
-    userId = "tg_" + tg.initDataUnsafe.user.id;
+try {
+    userId = tg?.initDataUnsafe?.user?.id;
+} catch (e) {
+    userId = null;
 }
+
+if (!userId) {
+    // fallback (чтобы не было общего "guest")
+    userId = "test_" + Math.random().toString(36).substring(2, 10);
+} else {
+    userId = "tg_" + userId;
+}
+
 
 // игра
 let game = {

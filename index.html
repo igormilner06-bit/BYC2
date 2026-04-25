@@ -6,11 +6,10 @@
 <title>City Game</title>
 
 <style>
-body { font-family: Arial; margin: 0; background:#eef2f7; }
-.container { padding: 15px; }
+body { font-family: Arial; margin:0; background:#eef2f7; }
+.container { padding:15px; }
 .card { background:#fff; padding:15px; margin-bottom:10px; border-radius:12px; }
-.stat { display:flex; justify-content:space-between; margin:5px 0; }
-button { padding:10px; border:none; border-radius:8px; cursor:pointer; }
+button { padding:10px; margin:5px 0; width:100%; }
 </style>
 </head>
 
@@ -20,20 +19,17 @@ button { padding:10px; border:none; border-radius:8px; cursor:pointer; }
 <h2>🏙️ City Game</h2>
 
 <div class="card">
-  <div class="stat">💰 <span id="money"></span></div>
-  <div class="stat">👥 <span id="people"></span></div>
-  <div class="stat">😊 <span id="happy"></span></div>
-  <div class="stat">📈 <span id="income"></span></div>
-  <div class="stat">🏆 <span id="level"></span></div>
+  💰 Деньги: <span id="money"></span><br>
+  👥 Люди: <span id="people"></span><br>
+  😊 Счастье: <span id="happy"></span>
 </div>
 
-<button onclick="buildHouse()">🏠 Дом (100)</button>
-<button onclick="buildFactory()">🏭 Завод (300)</button>
-<button onclick="buildSchool()">🏫 Школа (200)</button>
+<button onclick="build()">🏠 Построить дом</button>
 
 </div>
 
 <script type="module">
+
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
@@ -52,116 +48,98 @@ const db = getFirestore(app);
 
 // Telegram
 const tg = window.Telegram?.WebApp;
+tg?.ready?.();
+tg?.expand?.();
 
-tg?.ready?.();   // 🔥 ОБЯЗАТЕЛЬНО
+// ===== USER ID FIX =====
+function getUserId() {
+    const user = tg?.initDataUnsafe?.user;
 
-let userId;
+    if (user?.id) {
+        return "tg_" + user.id;
+    }
 
-const user = tg?.initDataUnsafe?.user;
-
-if (user?.id) {
-    userId = "tg_" + user.id;
-} else {
-    console.log("NO TELEGRAM USER → fallback");
-    userId = "test_" + Math.random().toString(36).slice(2, 8);
+    return null;
 }
-console.log("TG:", tg);
-console.log("USER:", tg?.initDataUnsafe?.user);
-console.log("USER ID:", userId);
 
-// GAME
+let userId = getUserId();
+
+if (!userId) {
+    console.log("NO TELEGRAM USER → fallback mode");
+    userId = "guest_" + Math.random().toString(36).slice(2,8);
+}
+
+console.log("USER ID FINAL:", userId);
+
+// ===== GAME DATA =====
 let game = {
     money: 500,
     people: 0,
-    happiness: 50,
-    level: 1
+    happiness: 50
 };
 
-// LOAD
+// ===== LOAD =====
 async function loadGame() {
-    const ref = doc(db, "cities", userId);
-    const snap = await getDoc(ref);
+    try {
+        const ref = doc(db, "cities", userId);
+        const snap = await getDoc(ref);
 
-    if (snap.exists()) {
-        game = snap.data();
+        if (snap.exists()) {
+            game = snap.data();
+        }
+
+        update();
+    } catch (e) {
+        console.log("LOAD ERROR:", e);
     }
-
-    update();
 }
 
-// SAVE
+// ===== SAVE =====
 async function saveGame() {
     try {
         const ref = doc(db, "cities", userId);
         await setDoc(ref, game);
+        console.log("SAVED");
     } catch (e) {
         console.log("SAVE ERROR:", e);
     }
 }
 
-// DEBOUNCE SAVE (ВАЖНО)
+// debounce save
 let saveTimeout;
 function scheduleSave() {
     clearTimeout(saveTimeout);
-    saveTimeout = setTimeout(() => {
-        saveGame();
-    }, 1000);
+    saveTimeout = setTimeout(saveGame, 1000);
 }
 
-// ECONOMY
-function income() {
-    return game.people * 2;
-}
-
-// UI
+// ===== GAME LOGIC =====
 function update() {
     document.getElementById("money").innerText = game.money;
     document.getElementById("people").innerText = game.people;
     document.getElementById("happy").innerText = game.happiness;
-    document.getElementById("income").innerText = income();
-    document.getElementById("level").innerText = game.level;
 
     scheduleSave();
 }
 
-// BUILDINGS
-function buildHouse() {
-    if (game.money >= 100) {
-        game.money -= 100;
-        game.people += 10;
-        update();
-    }
+function build() {
+    game.money -= 100;
+    game.people += 10;
+    game.happiness += 2;
+
+    update();
 }
 
-function buildFactory() {
-    if (game.money >= 300) {
-        game.money -= 300;
-        game.happiness -= 5;
-        update();
-    }
-}
-
-function buildSchool() {
-    if (game.money >= 200) {
-        game.money -= 200;
-        game.happiness += 10;
-        update();
-    }
-}
-
-// GAME LOOP
+// ===== AUTO INCOME =====
 setInterval(() => {
-    game.money += income();
+    game.money += game.people * 2;
     update();
 }, 3000);
 
-// START
+// ===== START =====
 loadGame();
 
 // expose
-window.buildHouse = buildHouse;
-window.buildFactory = buildFactory;
-window.buildSchool = buildSchool;
+window.build = build;
 
 </script>
 

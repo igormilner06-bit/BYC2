@@ -53,7 +53,7 @@ const db = getFirestore(app);
 // Telegram
 const tg = window.Telegram?.WebApp;
 if (tg) tg.expand();
-
+console.log("USER DEBUG:", tg?.initDataUnsafe?.user);
 // USER ID (ВАЖНО)
 let userId = "guest";
 

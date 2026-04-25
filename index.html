@@ -3,112 +3,33 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>City Mayor</title>
+<title>City Game</title>
 
 <style>
-body {
-    margin: 0;
-    font-family: Arial;
-    background: #eef2f7;
-}
-
-.container {
-    padding: 15px;
-}
-
-h1 {
-    text-align: center;
-}
-
-.card {
-    background: white;
-    border-radius: 15px;
-    padding: 15px;
-    margin-bottom: 15px;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.05);
-}
-
-.stat {
-    display: flex;
-    justify-content: space-between;
-    margin: 6px 0;
-    font-size: 16px;
-}
-
-.building {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    background: white;
-    border-radius: 15px;
-    padding: 10px;
-    margin-bottom: 10px;
-    box-shadow: 0 4px 8px rgba(0,0,0,0.05);
-}
-
-.building-info {
-    display: flex;
-    align-items: center;
-}
-
-.icon {
-    font-size: 30px;
-    margin-right: 10px;
-}
-
-button {
-    padding: 10px 15px;
-    border: none;
-    border-radius: 10px;
-    cursor: pointer;
-    font-weight: bold;
-    color: white;
-}
-
-.house { background: #4CAF50; }
-.factory { background: #FF9800; }
-.school { background: #2196F3; }
-
+body { font-family: Arial; margin: 0; background:#eef2f7; }
+.container { padding: 15px; }
+.card { background:#fff; padding:15px; margin-bottom:10px; border-radius:12px; }
+.stat { display:flex; justify-content:space-between; margin:5px 0; }
+button { padding:10px; border:none; border-radius:8px; cursor:pointer; }
 </style>
 </head>
 
 <body>
-
 <div class="container">
 
-<h1>🏙️ City Mayor</h1>
+<h2>🏙️ City Game</h2>
 
 <div class="card">
-    <div class="stat">💰 Деньги <span id="money"></span></div>
-    <div class="stat">👥 Население <span id="people"></span></div>
-    <div class="stat">😊 Счастье <span id="happy"></span></div>
-    <div class="stat">📊 Доход <span id="income"></span></div>
-    <div class="stat">🏆 Уровень <span id="level"></span></div>
+  <div class="stat">💰 <span id="money"></span></div>
+  <div class="stat">👥 <span id="people"></span></div>
+  <div class="stat">😊 <span id="happy"></span></div>
+  <div class="stat">📈 <span id="income"></span></div>
+  <div class="stat">🏆 <span id="level"></span></div>
 </div>
 
-<div class="building">
-    <div class="building-info">
-        <div class="icon">🏠</div>
-        <div><b>Дом</b><br>+10 жителей</div>
-    </div>
-    <button class="house" onclick="buildHouse()">100💰</button>
-</div>
-
-<div class="building">
-    <div class="building-info">
-        <div class="icon">🏭</div>
-        <div><b>Завод</b><br>+доход / -счастье</div>
-    </div>
-    <button class="factory" onclick="buildFactory()">300💰</button>
-</div>
-
-<div class="building">
-    <div class="building-info">
-        <div class="icon">🏫</div>
-        <div><b>Школа</b><br>+счастье</div>
-    </div>
-    <button class="school" onclick="buildSchool()">200💰</button>
-</div>
+<button onclick="buildHouse()">🏠 Дом (100)</button>
+<button onclick="buildFactory()">🏭 Завод (300)</button>
+<button onclick="buildSchool()">🏫 Школа (200)</button>
 
 </div>
 
@@ -116,7 +37,7 @@ button {
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-// 🔥 ТВОЙ FIREBASE CONFIG
+// Firebase
 const firebaseConfig = {
   apiKey: "AIzaSyDiESFdpgCfwaHPbn5DVvde82bmTUn_92A",
   authDomain: "game-124da.firebaseapp.com",
@@ -130,37 +51,27 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
 // Telegram
-let tg = window.Telegram?.WebApp;
+const tg = window.Telegram?.WebApp;
 if (tg) tg.expand();
 
-let userId;
+// USER ID (ВАЖНО)
+let userId = "guest";
 
-try {
-    userId = tg?.initDataUnsafe?.user?.id;
-} catch (e) {
-    userId = null;
-}
-
-if (!userId) {
-    // fallback (чтобы не было общего "guest")
-    userId = "test_" + Math.random().toString(36).substring(2, 10);
+if (tg?.initDataUnsafe?.user?.id) {
+    userId = "tg_" + tg.initDataUnsafe.user.id;
 } else {
-    userId = "tg_" + userId;
+    userId = "test_" + Math.random().toString(36).slice(2,8);
 }
 
-
-// игра
+// GAME
 let game = {
     money: 500,
     people: 0,
-    houses: 0,
-    factories: 0,
-    schools: 0,
     happiness: 50,
     level: 1
 };
 
-// загрузка
+// LOAD
 async function loadGame() {
     const ref = doc(db, "cities", userId);
     const snap = await getDoc(ref);
@@ -172,34 +83,46 @@ async function loadGame() {
     update();
 }
 
-// сохранение
+// SAVE
 async function saveGame() {
-    const ref = doc(db, "cities", userId);
-    await setDoc(ref, game);
+    try {
+        const ref = doc(db, "cities", userId);
+        await setDoc(ref, game);
+    } catch (e) {
+        console.log("SAVE ERROR:", e);
+    }
 }
 
-// доход
-function calcIncome() {
-    return game.people * 2 + game.factories * 50 - (game.schools * 20 + game.people);
+// DEBOUNCE SAVE (ВАЖНО)
+let saveTimeout;
+function scheduleSave() {
+    clearTimeout(saveTimeout);
+    saveTimeout = setTimeout(() => {
+        saveGame();
+    }, 1000);
+}
+
+// ECONOMY
+function income() {
+    return game.people * 2;
 }
 
 // UI
 function update() {
-    document.getElementById("money").innerText = Math.floor(game.money);
+    document.getElementById("money").innerText = game.money;
     document.getElementById("people").innerText = game.people;
     document.getElementById("happy").innerText = game.happiness;
-    document.getElementById("income").innerText = calcIncome();
+    document.getElementById("income").innerText = income();
     document.getElementById("level").innerText = game.level;
 
-    saveGame();
+    scheduleSave();
 }
 
-// здания
+// BUILDINGS
 function buildHouse() {
     if (game.money >= 100) {
         game.money -= 100;
         game.people += 10;
-        game.happiness += 2;
         update();
     }
 }
@@ -220,39 +143,20 @@ function buildSchool() {
     }
 }
 
-// цикл игры
+// GAME LOOP
 setInterval(() => {
-    game.money += calcIncome();
-
-    if (game.people > game.level * 50) {
-        game.level++;
-        alert("🏆 Новый уровень города!");
-    }
-
+    game.money += income();
     update();
 }, 3000);
 
-// старт
+// START
 loadGame();
 
-// кнопки для HTML
+// expose
 window.buildHouse = buildHouse;
 window.buildFactory = buildFactory;
 window.buildSchool = buildSchool;
 
-    setInterval(() => {
-    saveGame();
-}, 5000);
-
-window.addEventListener("beforeunload", () => {
-    saveGame();
-});
-
-if (tg) {
-    tg.onEvent("viewportChanged", () => {
-        saveGame();
-    });
-}
 </script>
 
 </body>

@@ -1,64 +1,235 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <meta charset="UTF-8">
-    <title>Мой город</title>
-    <style>
-        body { font-family: system-ui, sans-serif; padding: 20px; max-width: 400px; margin: 0 auto; }
-        button { font-size: 1.2rem; padding: 10px 20px; margin-top: 10px; }
-        .info { font-size: 1.2rem; margin: 10px 0; }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>City Mayor</title>
+
+<style>
+body {
+    margin: 0;
+    font-family: Arial;
+    background: #eef2f7;
+}
+
+.container {
+    padding: 15px;
+}
+
+h1 {
+    text-align: center;
+}
+
+.card {
+    background: white;
+    border-radius: 15px;
+    padding: 15px;
+    margin-bottom: 15px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+}
+
+.stat {
+    display: flex;
+    justify-content: space-between;
+    margin: 6px 0;
+    font-size: 16px;
+}
+
+.building {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: white;
+    border-radius: 15px;
+    padding: 10px;
+    margin-bottom: 10px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.05);
+}
+
+.building-info {
+    display: flex;
+    align-items: center;
+}
+
+.icon {
+    font-size: 30px;
+    margin-right: 10px;
+}
+
+button {
+    padding: 10px 15px;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    font-weight: bold;
+    color: white;
+}
+
+.house { background: #4CAF50; }
+.factory { background: #FF9800; }
+.school { background: #2196F3; }
+
+</style>
 </head>
+
 <body>
 
-<h1>🏙️ Мой город</h1>
-<div class="info">💰 Деньги: <span id="money">100</span></div>
-<div class="info">🏠 Домов: <span id="houses">0</span></div>
-<button onclick="buildHouse()">Построить дом (50💰)</button>
+<div class="container">
 
-<script>
-    // Telegram WebApp (безопасно)
-    if (window.Telegram?.WebApp) {
-        window.Telegram.WebApp.expand();
+<h1>🏙️ City Mayor</h1>
+
+<div class="card">
+    <div class="stat">💰 Деньги <span id="money"></span></div>
+    <div class="stat">👥 Население <span id="people"></span></div>
+    <div class="stat">😊 Счастье <span id="happy"></span></div>
+    <div class="stat">📊 Доход <span id="income"></span></div>
+    <div class="stat">🏆 Уровень <span id="level"></span></div>
+</div>
+
+<div class="building">
+    <div class="building-info">
+        <div class="icon">🏠</div>
+        <div><b>Дом</b><br>+10 жителей</div>
+    </div>
+    <button class="house" onclick="buildHouse()">100💰</button>
+</div>
+
+<div class="building">
+    <div class="building-info">
+        <div class="icon">🏭</div>
+        <div><b>Завод</b><br>+доход / -счастье</div>
+    </div>
+    <button class="factory" onclick="buildFactory()">300💰</button>
+</div>
+
+<div class="building">
+    <div class="building-info">
+        <div class="icon">🏫</div>
+        <div><b>Школа</b><br>+счастье</div>
+    </div>
+    <button class="school" onclick="buildSchool()">200💰</button>
+</div>
+
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+// 🔥 ТВОЙ FIREBASE CONFIG
+const firebaseConfig = {
+  apiKey: "AIzaSyDiESFdpgCfwaHPbn5DVvde82bmTUn_92A",
+  authDomain: "game-124da.firebaseapp.com",
+  projectId: "game-124da",
+  storageBucket: "game-124da.firebasestorage.app",
+  messagingSenderId: "323957265964",
+  appId: "1:323957265964:web:2ef3e6dbaea06b0c12e389"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+// Telegram
+let tg = window.Telegram?.WebApp;
+if (tg) tg.expand();
+
+let userId = "guest";
+if (tg?.initDataUnsafe?.user) {
+    userId = tg.initDataUnsafe.user.id.toString();
+}
+
+// игра
+let game = {
+    money: 500,
+    people: 0,
+    houses: 0,
+    factories: 0,
+    schools: 0,
+    happiness: 50,
+    level: 1
+};
+
+// загрузка
+async function loadGame() {
+    const ref = doc(db, "cities", userId);
+    const snap = await getDoc(ref);
+
+    if (snap.exists()) {
+        game = snap.data();
     }
-
-    let money = 100;
-    let houses = 0;
-
-    // Загрузка сохранений
-    const savedMoney = localStorage.getItem('cityMoney');
-    const savedHouses = localStorage.getItem('cityHouses');
-    if (savedMoney !== null) money = parseInt(savedMoney);
-    if (savedHouses !== null) houses = parseInt(savedHouses);
-
-    function saveGame() {
-        localStorage.setItem('cityMoney', money);
-        localStorage.setItem('cityHouses', houses);
-    }
-
-    function update() {
-        document.getElementById("money").innerText = money;
-        document.getElementById("houses").innerText = houses;
-        saveGame();
-    }
-
-    function buildHouse() {
-        if (money >= 50) {
-            money -= 50;
-            houses += 1;
-            update();
-        } else {
-            alert("Не хватает денег!");
-        }
-    }
-
-    // Пассивный доход
-    setInterval(() => {
-        money += houses * 10;
-        update();
-    }, 3000);
 
     update();
+}
+
+// сохранение
+async function saveGame() {
+    const ref = doc(db, "cities", userId);
+    await setDoc(ref, game);
+}
+
+// доход
+function calcIncome() {
+    return game.people * 2 + game.factories * 50 - (game.schools * 20 + game.people);
+}
+
+// UI
+function update() {
+    document.getElementById("money").innerText = Math.floor(game.money);
+    document.getElementById("people").innerText = game.people;
+    document.getElementById("happy").innerText = game.happiness;
+    document.getElementById("income").innerText = calcIncome();
+    document.getElementById("level").innerText = game.level;
+
+    saveGame();
+}
+
+// здания
+function buildHouse() {
+    if (game.money >= 100) {
+        game.money -= 100;
+        game.people += 10;
+        game.happiness += 2;
+        update();
+    }
+}
+
+function buildFactory() {
+    if (game.money >= 300) {
+        game.money -= 300;
+        game.happiness -= 5;
+        update();
+    }
+}
+
+function buildSchool() {
+    if (game.money >= 200) {
+        game.money -= 200;
+        game.happiness += 10;
+        update();
+    }
+}
+
+// цикл игры
+setInterval(() => {
+    game.money += calcIncome();
+
+    if (game.people > game.level * 50) {
+        game.level++;
+        alert("🏆 Новый уровень города!");
+    }
+
+    update();
+}, 3000);
+
+// старт
+loadGame();
+
+// кнопки для HTML
+window.buildHouse = buildHouse;
+window.buildFactory = buildFactory;
+window.buildSchool = buildSchool;
+
 </script>
+
 </body>
 </html>

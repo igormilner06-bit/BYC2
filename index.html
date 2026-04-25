@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Мой город</title>
+    <style>
+        body { font-family: system-ui, sans-serif; padding: 20px; max-width: 400px; margin: 0 auto; }
+        button { font-size: 1.2rem; padding: 10px 20px; margin-top: 10px; }
+        .info { font-size: 1.2rem; margin: 10px 0; }
+    </style>
+</head>
+<body>
+
+<h1>🏙️ Мой город</h1>
+<div class="info">💰 Деньги: <span id="money">100</span></div>
+<div class="info">🏠 Домов: <span id="houses">0</span></div>
+<button onclick="buildHouse()">Построить дом (50💰)</button>
+
+<script>
+    // Telegram WebApp (безопасно)
+    if (window.Telegram?.WebApp) {
+        window.Telegram.WebApp.expand();
+    }
+
+    let money = 100;
+    let houses = 0;
+
+    // Загрузка сохранений
+    const savedMoney = localStorage.getItem('cityMoney');
+    const savedHouses = localStorage.getItem('cityHouses');
+    if (savedMoney !== null) money = parseInt(savedMoney);
+    if (savedHouses !== null) houses = parseInt(savedHouses);
+
+    function saveGame() {
+        localStorage.setItem('cityMoney', money);
+        localStorage.setItem('cityHouses', houses);
+    }
+
+    function update() {
+        document.getElementById("money").innerText = money;
+        document.getElementById("houses").innerText = houses;
+        saveGame();
+    }
+
+    function buildHouse() {
+        if (money >= 50) {
+            money -= 50;
+            houses += 1;
+            update();
+        } else {
+            alert("Не хватает денег!");
+        }
+    }
+
+    // Пассивный доход
+    setInterval(() => {
+        money += houses * 10;
+        update();
+    }, 3000);
+
+    update();
+</script>
+</body>
+</html>

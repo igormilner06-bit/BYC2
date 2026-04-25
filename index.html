@@ -240,6 +240,19 @@ window.buildHouse = buildHouse;
 window.buildFactory = buildFactory;
 window.buildSchool = buildSchool;
 
+    setInterval(() => {
+    saveGame();
+}, 5000);
+
+window.addEventListener("beforeunload", () => {
+    saveGame();
+});
+
+if (tg) {
+    tg.onEvent("viewportChanged", () => {
+        saveGame();
+    });
+}
 </script>
 
 </body>

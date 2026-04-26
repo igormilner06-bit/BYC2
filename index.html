@@ -3,118 +3,195 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>City Game</title>
-
+<title>City Game — Эволюция домов</title>
 <style>
 body { font-family: Arial; margin:0; background:#eef2f7; }
-.container { padding:15px; }
-.card { background:#fff; padding:15px; margin-bottom:10px; border-radius:12px; }
-button { padding:10px; margin:5px 0; width:100%; background:#4CAF50; color:white; border:none; border-radius:8px; cursor:pointer; }
-button:hover { background:#45a049; }
+.container { padding:15px; max-width:600px; margin:auto; }
+.card { background:#fff; padding:15px; margin-bottom:10px; border-radius:12px; box-shadow:0 2px 5px rgba(0,0,0,0.1); }
+button { padding:10px; margin:5px 0; width:100%; background:#4CAF50; color:white; border:none; border-radius:8px; cursor:pointer; font-size:16px; }
+button:disabled { background:#aaa; cursor:not-allowed; }
+.building-group { margin-bottom:20px; border-left:4px solid #ff9800; padding-left:10px; }
+h3 { margin:0 0 10px 0; color:#333; }
 </style>
 </head>
-
 <body>
 <div class="container">
+  <h2>🏘️ City Game — Эволюция зданий</h2>
 
-<h2>🏙️ City Game</h2>
+  <div class="card">
+    💰 Деньги: <span id="money">0</span><br>
+    👥 Жители: <span id="people">0</span><br>
+    😊 Счастье: <span id="happy">0</span>
+  </div>
 
-<div class="card">
-  💰 Деньги: <span id="money"></span><br>
-  👥 Люди: <span id="people"></span><br>
-  😊 Счастье: <span id="happy"></span>
-</div>
+  <div class="building-group">
+    <h3>🪵 Деревянные дома</h3>
+    <button id="btn_wooden_small" onclick="build('wooden_small')">🏠 Деревянный малый (80💰) +5 жит.</button>
+    <button id="btn_wooden_medium" onclick="build('wooden_medium')">🏡 Деревянный средний (150💰) +12 жит.</button>
+    <button id="btn_wooden_large" onclick="build('wooden_large')">🏠 Деревянный большой (260💰) +25 жит.</button>
+  </div>
 
-<button onclick="build()">🏠 Построить дом</button>
+  <div class="building-group">
+    <h3>🧱 Кирпичные дома</h3>
+    <button id="btn_brick_small" onclick="build('brick_small')">🏠 Кирпичный малый (400💰) +20 жит.</button>
+    <button id="btn_brick_medium" onclick="build('brick_medium')">🏢 Кирпичный средний (700💰) +40 жит.</button>
+    <button id="btn_brick_large" onclick="build('brick_large')">🏢 Кирпичный большой (1200💰) +70 жит.</button>
+  </div>
 
+  <div class="building-group">
+    <h3>🏙️ Многоэтажные</h3>
+    <button id="btn_multistory" onclick="build('multistory')">🏙️ Многоэтажный дом (2500💰) +150 жит.</button>
+  </div>
 </div>
 
 <script>
-  // ===== Telegram (не обязателен, но если есть — используем) =====
+  // Telegram (если есть)
   const tg = window.Telegram?.WebApp;
-  if (tg) {
-    tg.ready();
-    tg.expand();
-  }
+  if (tg) { tg.ready(); tg.expand(); }
 
-  // ===== Уникальный ID пользователя для localStorage =====
-  function getUserId() {
-    if (tg?.initDataUnsafe?.user?.id) {
-      return "tg_" + tg.initDataUnsafe.user.id;
-    }
-    // fallback: свой ключ, общий для всех (или можно случайный)
-    return "city_game_default_user";
-  }
+  // Уникальный ключ для сохранения в localStorage
+  const STORAGE_KEY = "cityGameEvolution_" + (tg?.initDataUnsafe?.user?.id || "guest");
 
-  const userId = getUserId();
-  const STORAGE_KEY = "cityGame_" + userId;
-
-  // ===== Игровые данные по умолчанию =====
+  // Данные игры
   let game = {
     money: 500,
-    people: 0,
-    happiness: 50
+    happiness: 50,
+    buildings: {
+      wooden_small: 0,
+      wooden_medium: 0,
+      wooden_large: 0,
+      brick_small: 0,
+      brick_medium: 0,
+      brick_large: 0,
+      multistory: 0
+    }
   };
 
-  // ===== Загрузка из localStorage =====
+  // Справочник по зданиям
+  const buildingsInfo = {
+    wooden_small: { name:"Деревянный малый", cost:80, people:5, happiness:1, requires:null },
+    wooden_medium: { name:"Деревянный средний", cost:150, people:12, happiness:2, requires:{ wooden_small:1 } },
+    wooden_large: { name:"Деревянный большой", cost:260, people:25, happiness:3, requires:{ wooden_medium:1 } },
+    brick_small: { name:"Кирпичный малый", cost:400, people:20, happiness:4, requires:{ wooden_large:1 } },
+    brick_medium: { name:"Кирпичный средний", cost:700, people:40, happiness:5, requires:{ brick_small:1 } },
+    brick_large: { name:"Кирпичный большой", cost:1200, people:70, happiness:7, requires:{ brick_medium:1 } },
+    multistory: { name:"Многоэтажный", cost:2500, people:150, happiness:10, requires:{ brick_large:1 } }
+  };
+
+  // Подсчёт населения на основе зданий
+  function calcPopulation() {
+    let pop = 0;
+    for (let type in game.buildings) {
+      pop += game.buildings[type] * (buildingsInfo[type]?.people || 0);
+    }
+    return pop;
+  }
+
+  // Проверка, открыто ли здание
+  function isBuildingUnlocked(type) {
+    const info = buildingsInfo[type];
+    if (!info.requires) return true;
+    for (let requiredType in info.requires) {
+      if (game.buildings[requiredType] < info.requires[requiredType]) return false;
+    }
+    return true;
+  }
+
+  // Обновить UI: отобразить ресурсы и состояние кнопок
+  function updateUI() {
+    document.getElementById("money").innerText = Math.floor(game.money);
+    document.getElementById("people").innerText = calcPopulation();
+    document.getElementById("happy").innerText = Math.min(100, Math.max(0, game.happiness));
+
+    // Обновить активность кнопок в зависимости от денег и разблокировки
+    for (let type in buildingsInfo) {
+      const btn = document.getElementById("btn_" + type);
+      if (btn) {
+        const unlocked = isBuildingUnlocked(type);
+        const canAfford = game.money >= buildingsInfo[type].cost;
+        btn.disabled = !(unlocked && canAfford);
+        if (!unlocked) btn.title = "Требуется построить предыдущий тип дома";
+        else if (!canAfford) btn.title = "Не хватает денег";
+        else btn.title = "";
+      }
+    }
+  }
+
+  // Построить здание
+  function build(type) {
+    const info = buildingsInfo[type];
+    if (!info) return;
+    if (!isBuildingUnlocked(type)) {
+      alert(`Сначала постройте требуемые здания для ${info.name}`);
+      return;
+    }
+    if (game.money < info.cost) {
+      alert(`Не хватает денег на ${info.name} (нужно ${info.cost}💰)`);
+      return;
+    }
+
+    game.money -= info.cost;
+    game.buildings[type]++;
+    game.happiness += info.happiness;
+    game.happiness = Math.min(100, Math.max(0, game.happiness));
+
+    // Небольшое сообщение об успехе
+    console.log(`Построен ${info.name}! Теперь жителей: ${calcPopulation()}`);
+
+    updateUI();
+    scheduleSave();
+  }
+
+  // Сохранение в localStorage
+  function saveGame() {
+    const toSave = {
+      money: game.money,
+      happiness: game.happiness,
+      buildings: game.buildings
+    };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(toSave));
+  }
+
+  let saveTimeout;
+  function scheduleSave() {
+    clearTimeout(saveTimeout);
+    saveTimeout = setTimeout(saveGame, 1000);
+  }
+
+  // Загрузка из localStorage
   function loadGame() {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved) {
       try {
-        const parsed = JSON.parse(saved);
-        // обновляем только те поля, которые есть в сохранёнке
-        game = { ...game, ...parsed };
-        console.log("Данные загружены из устройства", game);
-      } catch(e) {
-        console.warn("Ошибка парсинга сохранения", e);
-      }
-    } else {
-      console.log("Нет сохранений — старт с дефолтом");
+        const data = JSON.parse(saved);
+        game.money = data.money ?? 500;
+        game.happiness = data.happiness ?? 50;
+        if (data.buildings) {
+          // смержить с существующей структурой, чтобы новые поля не потерялись
+          for (let key in game.buildings) {
+            if (data.buildings[key] !== undefined) game.buildings[key] = data.buildings[key];
+          }
+        }
+      } catch(e) { console.warn("Ошибка загрузки", e); }
     }
-    updateUI(); // показать сразу загруженное
+    updateUI();
   }
 
-  // ===== Сохранение в localStorage =====
-  function saveGame() {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(game));
-    console.log("Сохранено на устройстве", game);
-  }
-
-  // ===== Обновить экран и запланировать сохранение =====
-  let saveTimeout;
-  function updateUI() {
-    document.getElementById("money").innerText = game.money;
-    document.getElementById("people").innerText = game.people;
-    document.getElementById("happy").innerText = game.happiness;
-
-    // сохраняем, но не чаще раза в секунду
-    clearTimeout(saveTimeout);
-    saveTimeout = setTimeout(() => saveGame(), 1000);
-  }
-
-  // ===== Действия игрока =====
-  window.build = function build() {
-    if (game.money >= 100) {
-      game.money -= 100;
-      game.people += 10;
-      game.happiness = Math.min(100, game.happiness + 2);
-      updateUI();
-    } else {
-      alert("Не хватает денег!");
-    }
-  };
-
-  // ===== Авто-доход каждые 3 секунды =====
+  // Автоматический доход каждые 3 секунды
   setInterval(() => {
-    if (game.people > 0) {
-      game.money += game.people * 2;
+    const peopleCount = calcPopulation();
+    if (peopleCount > 0) {
+      game.money += peopleCount * 2;
       updateUI();
+      scheduleSave();
     }
   }, 3000);
 
-  // ===== Старт игры =====
+  // Глобальная функция для кнопок
+  window.build = build;
+
+  // Старт
   loadGame();
 </script>
-
 </body>
 </html>

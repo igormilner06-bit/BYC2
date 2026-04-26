@@ -3,44 +3,90 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>City Game — Эволюция домов</title>
+<title>City Game — Бонусы и улучшения</title>
 <style>
 body { font-family: Arial; margin:0; background:#eef2f7; }
 .container { padding:15px; max-width:600px; margin:auto; }
 .card { background:#fff; padding:15px; margin-bottom:10px; border-radius:12px; box-shadow:0 2px 5px rgba(0,0,0,0.1); }
 button { padding:10px; margin:5px 0; width:100%; background:#4CAF50; color:white; border:none; border-radius:8px; cursor:pointer; font-size:16px; }
 button:disabled { background:#aaa; cursor:not-allowed; }
-.building-group { margin-bottom:20px; border-left:4px solid #ff9800; padding-left:10px; }
+.building-group, .bonus-group { margin-bottom:20px; border-left:4px solid #ff9800; padding-left:10px; }
 h3 { margin:0 0 10px 0; color:#333; }
+.building-count, .bonus-level { font-size:14px; color:#555; margin-left:10px; }
+.bonus-price { font-size:12px; color:#777; }
+hr { margin:20px 0; }
 </style>
 </head>
 <body>
 <div class="container">
-  <h2>🏘️ City Game — Эволюция зданий</h2>
+  <h2>🏘️ City Game — Бонусы и улучшения</h2>
 
   <div class="card">
     💰 Деньги: <span id="money">0</span><br>
     👥 Жители: <span id="people">0</span><br>
-    😊 Счастье: <span id="happy">0</span>
+    😊 Счастье: <span id="happy">0</span><br>
+    📈 Доход за 3 сек: <span id="incomePerTick">0</span> (с бонусами)
   </div>
 
   <div class="building-group">
     <h3>🪵 Деревянные дома</h3>
-    <button id="btn_wooden_small" onclick="build('wooden_small')">🏠 Деревянный малый (80💰) +5 жит.</button>
-    <button id="btn_wooden_medium" onclick="build('wooden_medium')">🏡 Деревянный средний (150💰) +12 жит.</button>
-    <button id="btn_wooden_large" onclick="build('wooden_large')">🏠 Деревянный большой (260💰) +25 жит.</button>
+    <button id="btn_wooden_small" onclick="build('wooden_small')">
+      🏠 Деревянный малый <span class="building-price" id="price_wooden_small">250</span>💰 +5 жит.
+      <span class="building-count" id="count_wooden_small">0</span>
+    </button>
+    <button id="btn_wooden_medium" onclick="build('wooden_medium')">
+      🏡 Деревянный средний <span class="building-price" id="price_wooden_medium">500</span>💰 +12 жит.
+      <span class="building-count" id="count_wooden_medium">0</span>
+    </button>
+    <button id="btn_wooden_large" onclick="build('wooden_large')">
+      🏠 Деревянный большой <span class="building-price" id="price_wooden_large">1000</span>💰 +25 жит.
+      <span class="building-count" id="count_wooden_large">0</span>
+    </button>
   </div>
 
   <div class="building-group">
-    <h3>🧱 Кирпичные дома</h3>
-    <button id="btn_brick_small" onclick="build('brick_small')">🏠 Кирпичный малый (400💰) +20 жит.</button>
-    <button id="btn_brick_medium" onclick="build('brick_medium')">🏢 Кирпичный средний (700💰) +40 жит.</button>
-    <button id="btn_brick_large" onclick="build('brick_large')">🏢 Кирпичный большой (1200💰) +70 жит.</button>
+    <h3>🧱 Кирпичные дома (от 5+ деревянных)</h3>
+    <button id="btn_brick_small" onclick="build('brick_small')">
+      🧱 Кирпичный малый <span class="building-price" id="price_brick_small">4000</span>💰 +20 жит.
+      <span class="building-count" id="count_brick_small">0</span>
+    </button>
+    <button id="btn_brick_medium" onclick="build('brick_medium')">
+      🏢 Кирпичный средний <span class="building-price" id="price_brick_medium">7000</span>💰 +40 жит.
+      <span class="building-count" id="count_brick_medium">0</span>
+    </button>
+    <button id="btn_brick_large" onclick="build('brick_large')">
+      🏢 Кирпичный большой <span class="building-price" id="price_brick_large">12000</span>💰 +70 жит.
+      <span class="building-count" id="count_brick_large">0</span>
+    </button>
   </div>
 
   <div class="building-group">
-    <h3>🏙️ Многоэтажные</h3>
-    <button id="btn_multistory" onclick="build('multistory')">🏙️ Многоэтажный дом (2500💰) +150 жит.</button>
+    <h3>🏙️ Многоэтажные (от 5+ кирпичных)</h3>
+    <button id="btn_multistory" onclick="build('multistory')">
+      🏙️ Многоэтажный дом <span class="building-price" id="price_multistory">20000</span>💰 +150 жит.
+      <span class="building-count" id="count_multistory">0</span>
+    </button>
+  </div>
+
+  <hr>
+
+  <div class="bonus-group">
+    <h3>🎁 Бонусы и улучшения (постоянные)</h3>
+    <div>💼 Бизнес-центр: множитель дохода +<span id="incomeBonusLevel">0</span> (сейчас ×<span id="incomeMultiplierDisplay">1.2</span>)</div>
+    <button id="btn_incomeUpgrade" onclick="buyUpgrade('income')">
+      📈 Улучшить бизнес-центр (<span id="incomeUpgradePrice">1000</span>💰)
+      <span class="bonus-level" id="incomeUpgradeLevel">0</span>
+    </button>
+    <div>🛠️ Строительная бригада: скидка <span id="discountPercent">0</span>% на все здания</div>
+    <button id="btn_discountUpgrade" onclick="buyUpgrade('discount')">
+      🔧 Нанять бригаду (<span id="discountUpgradePrice">2000</span>💰)
+      <span class="bonus-level" id="discountUpgradeLevel">0</span>
+    </button>
+    <div>🌳 Парк культуры: +<span id="happinessBonusLevel">0</span> счастья за каждое новое здание</div>
+    <button id="btn_happinessUpgrade" onclick="buyUpgrade('happiness')">
+      🌲 Построить парк (<span id="happinessUpgradePrice">1500</span>💰)
+      <span class="bonus-level" id="happinessUpgradeLevel">0</span>
+    </button>
   </div>
 </div>
 
@@ -49,36 +95,93 @@ h3 { margin:0 0 10px 0; color:#333; }
   const tg = window.Telegram?.WebApp;
   if (tg) { tg.ready(); tg.expand(); }
 
-  // Уникальный ключ для сохранения в localStorage
-  const STORAGE_KEY = "cityGameEvolution_" + (tg?.initDataUnsafe?.user?.id || "guest");
+  const STORAGE_KEY = "cityGameBonuses_" + (tg?.initDataUnsafe?.user?.id || "guest");
+  const START_MONEY = 1000;
 
   // Данные игры
   let game = {
-    money: 500,
+    money: START_MONEY,
     happiness: 50,
     buildings: {
-      wooden_small: 0,
-      wooden_medium: 0,
-      wooden_large: 0,
-      brick_small: 0,
-      brick_medium: 0,
-      brick_large: 0,
+      wooden_small: 0, wooden_medium: 0, wooden_large: 0,
+      brick_small: 0, brick_medium: 0, brick_large: 0,
       multistory: 0
+    },
+    upgrades: {
+      income: 0,    // уровень бизнес-центра (0-5)
+      discount: 0,  // уровень строительной бригады (0-3)
+      happiness: 0  // уровень парка (0-3)
     }
   };
 
-  // Справочник по зданиям
-  const buildingsInfo = {
-    wooden_small: { name:"Деревянный малый", cost:80, people:5, happiness:1, requires:null },
-    wooden_medium: { name:"Деревянный средний", cost:150, people:12, happiness:2, requires:{ wooden_small:1 } },
-    wooden_large: { name:"Деревянный большой", cost:260, people:25, happiness:3, requires:{ wooden_medium:1 } },
-    brick_small: { name:"Кирпичный малый", cost:400, people:20, happiness:4, requires:{ wooden_large:1 } },
-    brick_medium: { name:"Кирпичный средний", cost:700, people:40, happiness:5, requires:{ brick_small:1 } },
-    brick_large: { name:"Кирпичный большой", cost:1200, people:70, happiness:7, requires:{ brick_medium:1 } },
-    multistory: { name:"Многоэтажный", cost:2500, people:150, happiness:10, requires:{ brick_large:1 } }
+  // Базовые цены зданий (без скидки)
+  const basePrices = {
+    wooden_small: 250, wooden_medium: 500, wooden_large: 1000,
+    brick_small: 4000, brick_medium: 7000, brick_large: 12000,
+    multistory: 20000
   };
 
-  // Подсчёт населения на основе зданий
+  // Эффекты зданий (люди, базовое счастье)
+  const buildingsInfo = {
+    wooden_small: { name:"Деревянный малый", people:5, baseHappiness:1 },
+    wooden_medium: { name:"Деревянный средний", people:12, baseHappiness:2 },
+    wooden_large: { name:"Деревянный большой", people:25, baseHappiness:3 },
+    brick_small: { name:"Кирпичный малый", people:20, baseHappiness:4 },
+    brick_medium: { name:"Кирпичный средний", people:40, baseHappiness:5 },
+    brick_large: { name:"Кирпичный большой", people:70, baseHappiness:7 },
+    multistory: { name:"Многоэтажный", people:150, baseHappiness:10 }
+  };
+
+  // Стоимость следующего уровня улучшений
+  function getUpgradeCost(type) {
+    const level = game.upgrades[type];
+    if (type === 'income') {
+      const costs = [1000, 2000, 4000, 8000, 16000];
+      return level < costs.length ? costs[level] : Infinity;
+    }
+    if (type === 'discount') {
+      const costs = [2000, 5000, 10000];
+      return level < costs.length ? costs[level] : Infinity;
+    }
+    if (type === 'happiness') {
+      const costs = [1500, 3000, 6000];
+      return level < costs.length ? costs[level] : Infinity;
+    }
+    return Infinity;
+  }
+
+  // Максимальный уровень улучшения
+  function getMaxLevel(type) {
+    if (type === 'income') return 5;
+    if (type === 'discount') return 3;
+    if (type === 'happiness') return 3;
+    return 0;
+  }
+
+  // Текущая скидка (в долях)
+  function getDiscountMultiplier() {
+    const level = game.upgrades.discount;
+    const discount = level * 0.05; // 5% за уровень
+    return Math.max(0, 1 - discount);
+  }
+
+  // Итоговая цена здания со скидкой
+  function getEffectivePrice(buildingType) {
+    const base = basePrices[buildingType];
+    return Math.floor(base * getDiscountMultiplier());
+  }
+
+  // Множитель дохода (1.2 базовый + бонус от бизнес-центра)
+  function getIncomeMultiplier() {
+    return 1.2 + game.upgrades.income * 0.1;
+  }
+
+  // Бонус счастья при постройке (сверх базового)
+  function getHappinessBonus() {
+    return game.upgrades.happiness;
+  }
+
+  // Подсчёт населения
   function calcPopulation() {
     let pop = 0;
     for (let type in game.buildings) {
@@ -87,34 +190,84 @@ h3 { margin:0 0 10px 0; color:#333; }
     return pop;
   }
 
-  // Проверка, открыто ли здание
-  function isBuildingUnlocked(type) {
-    const info = buildingsInfo[type];
-    if (!info.requires) return true;
-    for (let requiredType in info.requires) {
-      if (game.buildings[requiredType] < info.requires[requiredType]) return false;
-    }
-    return true;
+  // Сумма деревянных и кирпичных для разблокировки
+  function totalWooden() {
+    return game.buildings.wooden_small + game.buildings.wooden_medium + game.buildings.wooden_large;
+  }
+  function totalBrick() {
+    return game.buildings.brick_small + game.buildings.brick_medium + game.buildings.brick_large;
   }
 
-  // Обновить UI: отобразить ресурсы и состояние кнопок
+  function isBuildingUnlocked(type) {
+    if (type.startsWith("wooden")) return true;
+    if (type.startsWith("brick")) {
+      if (type === "brick_small") return totalWooden() >= 5;
+      if (type === "brick_medium") return totalWooden() >= 10;
+      if (type === "brick_large") return totalWooden() >= 20;
+    }
+    if (type === "multistory") return totalBrick() >= 5;
+    return false;
+  }
+
+  function getRequirementText(type) {
+    if (type.startsWith("brick")) {
+      if (type === "brick_small") return `5 деревянных домов (сейчас ${totalWooden()})`;
+      if (type === "brick_medium") return `10 деревянных домов (сейчас ${totalWooden()})`;
+      if (type === "brick_large") return `20 деревянных домов (сейчас ${totalWooden()})`;
+    }
+    if (type === "multistory") return `5 кирпичных домов (сейчас ${totalBrick()})`;
+    return "";
+  }
+
+  // Обновить весь интерфейс
   function updateUI() {
     document.getElementById("money").innerText = Math.floor(game.money);
     document.getElementById("people").innerText = calcPopulation();
     document.getElementById("happy").innerText = Math.min(100, Math.max(0, game.happiness));
+    const incomePerTick = calcPopulation() * getIncomeMultiplier();
+    document.getElementById("incomePerTick").innerText = incomePerTick.toFixed(1);
 
-    // Обновить активность кнопок в зависимости от денег и разблокировки
-    for (let type in buildingsInfo) {
+    // Обновить цены и кнопки зданий
+    for (let type in basePrices) {
+      const price = getEffectivePrice(type);
+      const priceSpan = document.getElementById("price_" + type);
+      if (priceSpan) priceSpan.innerText = price;
       const btn = document.getElementById("btn_" + type);
+      const countSpan = document.getElementById("count_" + type);
       if (btn) {
         const unlocked = isBuildingUnlocked(type);
-        const canAfford = game.money >= buildingsInfo[type].cost;
+        const canAfford = game.money >= price;
         btn.disabled = !(unlocked && canAfford);
-        if (!unlocked) btn.title = "Требуется построить предыдущий тип дома";
+        if (!unlocked) btn.title = `Требуется: ${getRequirementText(type)}`;
         else if (!canAfford) btn.title = "Не хватает денег";
         else btn.title = "";
       }
+      if (countSpan) countSpan.innerText = `(построено: ${game.buildings[type]})`;
     }
+
+    // Обновить бонусы
+    document.getElementById("incomeBonusLevel").innerText = game.upgrades.income;
+    document.getElementById("incomeMultiplierDisplay").innerText = getIncomeMultiplier().toFixed(1);
+    const incomePrice = getUpgradeCost('income');
+    document.getElementById("incomeUpgradePrice").innerText = incomePrice === Infinity ? "MAX" : incomePrice;
+    document.getElementById("incomeUpgradeLevel").innerText = `${game.upgrades.income}/${getMaxLevel('income')}`;
+    const incomeBtn = document.getElementById("btn_incomeUpgrade");
+    if (incomeBtn) incomeBtn.disabled = (game.upgrades.income >= getMaxLevel('income') || game.money < incomePrice);
+
+    const discountPercent = game.upgrades.discount * 5;
+    document.getElementById("discountPercent").innerText = discountPercent;
+    const discountPrice = getUpgradeCost('discount');
+    document.getElementById("discountUpgradePrice").innerText = discountPrice === Infinity ? "MAX" : discountPrice;
+    document.getElementById("discountUpgradeLevel").innerText = `${game.upgrades.discount}/${getMaxLevel('discount')}`;
+    const discountBtn = document.getElementById("btn_discountUpgrade");
+    if (discountBtn) discountBtn.disabled = (game.upgrades.discount >= getMaxLevel('discount') || game.money < discountPrice);
+
+    document.getElementById("happinessBonusLevel").innerText = game.upgrades.happiness;
+    const happinessPrice = getUpgradeCost('happiness');
+    document.getElementById("happinessUpgradePrice").innerText = happinessPrice === Infinity ? "MAX" : happinessPrice;
+    document.getElementById("happinessUpgradeLevel").innerText = `${game.upgrades.happiness}/${getMaxLevel('happiness')}`;
+    const happinessBtn = document.getElementById("btn_happinessUpgrade");
+    if (happinessBtn) happinessBtn.disabled = (game.upgrades.happiness >= getMaxLevel('happiness') || game.money < happinessPrice);
   }
 
   // Построить здание
@@ -122,32 +275,48 @@ h3 { margin:0 0 10px 0; color:#333; }
     const info = buildingsInfo[type];
     if (!info) return;
     if (!isBuildingUnlocked(type)) {
-      alert(`Сначала постройте требуемые здания для ${info.name}`);
+      alert(`${info.name} пока недоступен. ${getRequirementText(type)}`);
       return;
     }
-    if (game.money < info.cost) {
-      alert(`Не хватает денег на ${info.name} (нужно ${info.cost}💰)`);
+    const price = getEffectivePrice(type);
+    if (game.money < price) {
+      alert(`Не хватает денег на ${info.name} (нужно ${price}💰)`);
       return;
     }
 
-    game.money -= info.cost;
+    game.money -= price;
     game.buildings[type]++;
-    game.happiness += info.happiness;
-    game.happiness = Math.min(100, Math.max(0, game.happiness));
-
-    // Небольшое сообщение об успехе
-    console.log(`Построен ${info.name}! Теперь жителей: ${calcPopulation()}`);
+    const happinessGain = info.baseHappiness + getHappinessBonus();
+    game.happiness = Math.min(100, game.happiness + happinessGain);
 
     updateUI();
     scheduleSave();
   }
 
-  // Сохранение в localStorage
+  // Купить улучшение
+  function buyUpgrade(upgradeType) {
+    const cost = getUpgradeCost(upgradeType);
+    if (cost === Infinity) {
+      alert("Максимальный уровень достигнут");
+      return;
+    }
+    if (game.money < cost) {
+      alert(`Не хватает денег: нужно ${cost}💰`);
+      return;
+    }
+    game.money -= cost;
+    game.upgrades[upgradeType]++;
+    updateUI();
+    scheduleSave();
+  }
+
+  // Сохранение
   function saveGame() {
     const toSave = {
       money: game.money,
       happiness: game.happiness,
-      buildings: game.buildings
+      buildings: game.buildings,
+      upgrades: game.upgrades
     };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(toSave));
   }
@@ -158,18 +327,21 @@ h3 { margin:0 0 10px 0; color:#333; }
     saveTimeout = setTimeout(saveGame, 1000);
   }
 
-  // Загрузка из localStorage
   function loadGame() {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved) {
       try {
         const data = JSON.parse(saved);
-        game.money = data.money ?? 500;
+        game.money = data.money ?? START_MONEY;
         game.happiness = data.happiness ?? 50;
         if (data.buildings) {
-          // смержить с существующей структурой, чтобы новые поля не потерялись
           for (let key in game.buildings) {
             if (data.buildings[key] !== undefined) game.buildings[key] = data.buildings[key];
+          }
+        }
+        if (data.upgrades) {
+          for (let key in game.upgrades) {
+            if (data.upgrades[key] !== undefined) game.upgrades[key] = data.upgrades[key];
           }
         }
       } catch(e) { console.warn("Ошибка загрузки", e); }
@@ -177,20 +349,18 @@ h3 { margin:0 0 10px 0; color:#333; }
     updateUI();
   }
 
-  // Автоматический доход каждые 3 секунды
+  // Автодоход
   setInterval(() => {
     const peopleCount = calcPopulation();
     if (peopleCount > 0) {
-      game.money += peopleCount * 2;
+      game.money += peopleCount * getIncomeMultiplier();
       updateUI();
       scheduleSave();
     }
   }, 3000);
 
-  // Глобальная функция для кнопок
   window.build = build;
-
-  // Старт
+  window.buyUpgrade = buyUpgrade;
   loadGame();
 </script>
 </body>

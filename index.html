@@ -9,7 +9,8 @@
 body { font-family: Arial; margin:0; background:#eef2f7; }
 .container { padding:15px; }
 .card { background:#fff; padding:15px; margin-bottom:10px; border-radius:12px; }
-button { padding:10px; margin:5px 0; width:100%; }
+button { padding:10px; margin:5px 0; width:100%; background:#4CAF50; color:white; border:none; border-radius:8px; cursor:pointer; }
+button:hover { background:#45a049; }
 </style>
 </head>
 
@@ -28,119 +29,91 @@ button { padding:10px; margin:5px 0; width:100%; }
 
 </div>
 
-<script type="module">
+<script>
+  // ===== Telegram (не обязателен, но если есть — используем) =====
+  const tg = window.Telegram?.WebApp;
+  if (tg) {
+    tg.ready();
+    tg.expand();
+  }
 
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-
-// Firebase
-const firebaseConfig = {
-  apiKey: "AIzaSyDiESFdpgCfwaHPbn5DVvde82bmTUn_92A",
-  authDomain: "game-124da.firebaseapp.com",
-  projectId: "game-124da",
-  storageBucket: "game-124da.firebasestorage.app",
-  messagingSenderId: "323957265964",
-  appId: "1:323957265964:web:2ef3e6dbaea06b0c12e389"
-};
-
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
-
-// Telegram
-const tg = window.Telegram?.WebApp;
-tg?.ready?.();
-tg?.expand?.();
-
-// ===== USER ID FIX =====
-function getUserId() {
-    const user = tg?.initDataUnsafe?.user;
-
-    if (user?.id) {
-        return "tg_" + user.id;
+  // ===== Уникальный ID пользователя для localStorage =====
+  function getUserId() {
+    if (tg?.initDataUnsafe?.user?.id) {
+      return "tg_" + tg.initDataUnsafe.user.id;
     }
+    // fallback: свой ключ, общий для всех (или можно случайный)
+    return "city_game_default_user";
+  }
 
-    return null;
-}
+  const userId = getUserId();
+  const STORAGE_KEY = "cityGame_" + userId;
 
-let userId = getUserId();
-
-if (!userId) {
-    console.log("NO TELEGRAM USER → fallback mode");
-    userId = "guest_" + Math.random().toString(36).slice(2,8);
-}
-
-console.log("USER ID FINAL:", userId);
-
-// ===== GAME DATA =====
-let game = {
+  // ===== Игровые данные по умолчанию =====
+  let game = {
     money: 500,
     people: 0,
     happiness: 50
-};
+  };
 
-// ===== LOAD =====
-async function loadGame() {
-    try {
-        const ref = doc(db, "cities", userId);
-        const snap = await getDoc(ref);
-
-        if (snap.exists()) {
-            game = snap.data();
-        }
-
-        update();
-    } catch (e) {
-        console.log("LOAD ERROR:", e);
+  // ===== Загрузка из localStorage =====
+  function loadGame() {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        // обновляем только те поля, которые есть в сохранёнке
+        game = { ...game, ...parsed };
+        console.log("Данные загружены из устройства", game);
+      } catch(e) {
+        console.warn("Ошибка парсинга сохранения", e);
+      }
+    } else {
+      console.log("Нет сохранений — старт с дефолтом");
     }
-}
+    updateUI(); // показать сразу загруженное
+  }
 
-// ===== SAVE =====
-async function saveGame() {
-    try {
-        const ref = doc(db, "cities", userId);
-        await setDoc(ref, game);
-        console.log("SAVED");
-    } catch (e) {
-        console.log("SAVE ERROR:", e);
-    }
-}
+  // ===== Сохранение в localStorage =====
+  function saveGame() {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(game));
+    console.log("Сохранено на устройстве", game);
+  }
 
-// debounce save
-let saveTimeout;
-function scheduleSave() {
-    clearTimeout(saveTimeout);
-    saveTimeout = setTimeout(saveGame, 1000);
-}
-
-// ===== GAME LOGIC =====
-function update() {
+  // ===== Обновить экран и запланировать сохранение =====
+  let saveTimeout;
+  function updateUI() {
     document.getElementById("money").innerText = game.money;
     document.getElementById("people").innerText = game.people;
     document.getElementById("happy").innerText = game.happiness;
 
-    scheduleSave();
-}
+    // сохраняем, но не чаще раза в секунду
+    clearTimeout(saveTimeout);
+    saveTimeout = setTimeout(() => saveGame(), 1000);
+  }
 
-function build() {
-    game.money -= 100;
-    game.people += 10;
-    game.happiness += 2;
+  // ===== Действия игрока =====
+  window.build = function build() {
+    if (game.money >= 100) {
+      game.money -= 100;
+      game.people += 10;
+      game.happiness = Math.min(100, game.happiness + 2);
+      updateUI();
+    } else {
+      alert("Не хватает денег!");
+    }
+  };
 
-    update();
-}
+  // ===== Авто-доход каждые 3 секунды =====
+  setInterval(() => {
+    if (game.people > 0) {
+      game.money += game.people * 2;
+      updateUI();
+    }
+  }, 3000);
 
-// ===== AUTO INCOME =====
-setInterval(() => {
-    game.money += game.people * 2;
-    update();
-}, 3000);
-
-// ===== START =====
-loadGame();
-
-// expose
-window.build = build;
-
+  // ===== Старт игры =====
+  loadGame();
 </script>
 
 </body>

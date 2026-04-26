@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>City Game — Офлайн-доход 24/7</title>
+<title>City Game — Инфраструктура (Дороги и Электричество)</title>
 <style>
 body { font-family: Arial; margin:0; background:#eef2f7; }
 .container { padding:15px; max-width:600px; margin:auto; }
@@ -23,12 +23,23 @@ hr { margin:20px 0; }
   <h2>🏘️ City Game — Офлайн-доход 24/7</h2>
 
   <div class="card">
+    <div>🏆 ЭТАП ГОРОДА: <strong id="cityStageName">Деревня</strong> <span id="stageMultiplierDisplay">(x1 доход)</span></div>
+    <div>📈 До следующего этапа:</div>
+    <div class="level-progress" style="margin-top:4px"><div class="level-progress-fill" id="stageHousesProgress" style="background:#2196f3;"></div></div>
+    <div class="level-progress" style="margin-top:4px"><div class="level-progress-fill" id="stageStoresProgress" style="background:#ff9800;"></div></div>
+    <div id="stageRequirements"></div>
+  </div>
+
+  <div class="card">
     <div>📊 Уровень <strong id="level">1</strong>  <span id="levelProgressText">(0/3 деревянных домов)</span></div>
     <div class="level-progress"><div class="level-progress-fill" id="levelProgressFill"></div></div>
     💰 Деньги: <span id="money">0</span><br>
     👥 Жители: <span id="people">0</span><br>
-    😊 Счастье: <span id="happy">0</span><br>
-    📈 Доход за 3 сек: <span id="incomePerTick">0</span>
+    😊 Счастье: <span id="happy">0</span> (множитель дохода: <span id="happinessMultDisplay">1.00</span>)<br>
+    📈 Доход за 3 сек: <span id="incomePerTick">0</span><br>
+    🛣️ Дороги: <span id="roadUsage">0</span>/<span id="roadCapacity">0</span><br>
+    ⚡ Электричество: <span id="powerUsage">0</span>/<span id="powerSupply">0</span><br>
+    📉 Эффективность: <span id="infraEfficiency">100</span>%
   </div>
 
   <div class="building-group">
@@ -71,6 +82,22 @@ hr { margin:20px 0; }
     </button>
   </div>
 
+  <div class="building-group">
+    <h3>🛒 Инфраструктура</h3>
+    <button id="btn_store" onclick="build('store')">
+      🛍️ Магазин <span class="building-price" id="price_store">3000</span>💰 +5 счастья, доход +15
+      <span class="building-count" id="count_store">0</span>
+    </button>
+    <button id="btn_road" onclick="build('road')">
+      🛣️ Дорога <span class="building-price" id="price_road">400</span>💰 (поддерживает 5 зданий)
+      <span class="building-count" id="count_road">0</span>
+    </button>
+    <button id="btn_power_station" onclick="build('power_station')">
+      ⚡ Электростанция <span class="building-price" id="price_power_station">4000</span>💰 (100 энергии)
+      <span class="building-count" id="count_power_station">0</span>
+    </button>
+  </div>
+
   <hr>
 
   <div class="bonus-group">
@@ -94,7 +121,6 @@ hr { margin:20px 0; }
 </div>
 
 <script>
-  // Telegram (если есть)
   const tg = window.Telegram?.WebApp;
   if (tg) { tg.ready(); tg.expand(); }
 
@@ -107,7 +133,10 @@ hr { margin:20px 0; }
     buildings: {
       wooden_small: 0, wooden_medium: 0, wooden_large: 0,
       brick_small: 0, brick_medium: 0, brick_large: 0,
-      multistory: 0
+      multistory: 0,
+      store: 0,
+      road: 0,
+      power_station: 0
     },
     upgrades: {
       income: 0,
@@ -115,10 +144,10 @@ hr { margin:20px 0; }
       happiness: 0
     },
     level: 1,
+    cityStage: 0,
     lastSaveTime: Date.now()
   };
 
-  // Таблица уровней
   const levelRequirements = [
     { level: 2, woodenNeeded: 3, reward: 1500 },
     { level: 3, woodenNeeded: 10, reward: 3000 },
@@ -129,28 +158,53 @@ hr { margin:20px 0; }
     { level: 8, woodenNeeded: 100, reward: 30000 }
   ];
 
+  const cityStages = [
+    { name: "🌾 Деревня", housesRequired: 30, storesRequired: 1, reward: 5000, multiplier: 1.0 },
+    { name: "🏘️ Село",    housesRequired: 70, storesRequired: 3, reward: 10000, multiplier: 1.2 },
+    { name: "🏢 ПГТ",     housesRequired: 100, storesRequired: 5, reward: 20000, multiplier: 1.5 },
+    { name: "🏙️ Город",   housesRequired: 300, storesRequired: 10, reward: 40000, multiplier: 2.0 },
+    { name: "🌆 Мегаполис", housesRequired: 600, storesRequired: 20, reward: 80000, multiplier: 3.0 }
+  ];
+
   const basePrices = {
     wooden_small: 250, wooden_medium: 500, wooden_large: 1000,
     brick_small: 4000, brick_medium: 7000, brick_large: 12000,
-    multistory: 25000
+    multistory: 20000,
+    store: 3000,
+    road: 400,
+    power_station: 4000
   };
 
   const buildingsInfo = {
-    wooden_small: { name:"Деревянный малый", people:5, baseHappiness:1 },
-    wooden_medium: { name:"Деревянный средний", people:12, baseHappiness:2 },
-    wooden_large: { name:"Деревянный большой", people:25, baseHappiness:3 },
-    brick_small: { name:"Кирпичный малый", people:20, baseHappiness:4 },
-    brick_medium: { name:"Кирпичный средний", people:40, baseHappiness:5 },
-    brick_large: { name:"Кирпичный большой", people:70, baseHappiness:7 },
-    multistory: { name:"Многоэтажный", people:150, baseHappiness:10 }
+    wooden_small: { name:"Деревянный малый", people:5, baseHappiness:1, storeIncome:0 },
+    wooden_medium: { name:"Деревянный средний", people:12, baseHappiness:2, storeIncome:0 },
+    wooden_large: { name:"Деревянный большой", people:25, baseHappiness:3, storeIncome:0 },
+    brick_small: { name:"Кирпичный малый", people:20, baseHappiness:4, storeIncome:0 },
+    brick_medium: { name:"Кирпичный средний", people:40, baseHappiness:5, storeIncome:0 },
+    brick_large: { name:"Кирпичный большой", people:70, baseHappiness:7, storeIncome:0 },
+    multistory: { name:"Многоэтажный", people:150, baseHappiness:10, storeIncome:0 },
+    store: { name:"Магазин", people:0, baseHappiness:5, storeIncome:15 },
+    road: { name:"Дорога", people:0, baseHappiness:1, storeIncome:0 },
+    power_station: { name:"Электростанция", people:0, baseHappiness:0, storeIncome:0 }
   };
 
-  // ---- Вспомогательные функции ----
   function totalWooden() {
     return game.buildings.wooden_small + game.buildings.wooden_medium + game.buildings.wooden_large;
   }
   function totalBrick() {
     return game.buildings.brick_small + game.buildings.brick_medium + game.buildings.brick_large;
+  }
+  function totalHouses() {
+    let houses = 0;
+    for (let type in game.buildings) {
+      if (type !== 'store' && type !== 'road' && type !== 'power_station') {
+        houses += game.buildings[type];
+      }
+    }
+    return houses;
+  }
+  function totalStores() {
+    return game.buildings.store || 0;
   }
   function calcPopulation() {
     let pop = 0;
@@ -166,11 +220,98 @@ hr { margin:20px 0; }
     return Math.floor(basePrices[type] * getDiscountMultiplier());
   }
   function getIncomeMultiplier() {
-    return 1.5 + game.upgrades.income * 0.1;
+    return 1.2 + game.upgrades.income * 0.1;
   }
   function getHappinessBonus() {
     return game.upgrades.happiness;
   }
+  function getHappinessMultiplier() {
+    const h = game.happiness;
+    if (h < 30) return 0.7 + (h / 100) * 0.3;
+    if (h < 70) return 1.0;
+    return 1.0 + ((h - 70) / 30) * 0.5;
+  }
+  function getStageMultiplier() {
+    return cityStages[game.cityStage]?.multiplier || 1.0;
+  }
+  
+  // === НОВЫЕ ФУНКЦИИ ИНФРАСТРУКТУРЫ ===
+  function getRoadCapacity() {
+    return game.buildings.road * 5;
+  }
+  function getUsedRoadCapacity() {
+    let used = 0;
+    for (let type in game.buildings) {
+      if (type !== 'road' && type !== 'power_station') {
+        used += game.buildings[type];
+      }
+    }
+    return used;
+  }
+  function getPowerSupply() {
+    return game.buildings.power_station * 100;
+  }
+  function getPowerUsage() {
+    let usage = 0;
+    usage += game.buildings.wooden_small * 1;
+    usage += game.buildings.wooden_medium * 1;
+    usage += game.buildings.wooden_large * 1;
+    usage += game.buildings.brick_small * 2;
+    usage += game.buildings.brick_medium * 2;
+    usage += game.buildings.brick_large * 2;
+    usage += game.buildings.multistory * 5;
+    usage += game.buildings.store * 2;
+    return usage;
+  }
+  function getRoadEfficiency() {
+    return getUsedRoadCapacity() > getRoadCapacity() ? 0.7 : 1;
+  }
+  function getPowerEfficiency() {
+    return getPowerUsage() > getPowerSupply() ? 0.5 : 1;
+  }
+  // Проверка возможности строительства с учётом инфраструктуры
+  function canBuildWithInfra(type, newBuildingCount = 1) {
+    if (type === 'road' || type === 'power_station') return { ok: true };
+    
+    // Дороги
+    const usedAfter = getUsedRoadCapacity() + newBuildingCount;
+    const capacity = getRoadCapacity();
+    if (usedAfter > capacity) {
+      return { ok: false, reason: `Недостаточно дорог. Нужно ещё ${usedAfter - capacity} дорог(и).` };
+    }
+    
+    // Электричество
+    let consumption = 0;
+    if (type.startsWith('wooden')) consumption = 1;
+    else if (type.startsWith('brick')) consumption = 2;
+    else if (type === 'multistory') consumption = 5;
+    else if (type === 'store') consumption = 2;
+    const usageAfter = getPowerUsage() + consumption;
+    const supply = getPowerSupply();
+    if (usageAfter > supply) {
+      const neededStations = Math.ceil((usageAfter - supply) / 100);
+      return { ok: false, reason: `Недостаточно электричества. Нужно ещё ${neededStations} электростанций.` };
+    }
+    return { ok: true };
+  }
+  // Штрафы счастья за нехватку инфраструктуры
+  function applyInfrastructurePenalties() {
+    let penalty = 0;
+    if (getUsedRoadCapacity() > getRoadCapacity()) penalty += 2;
+    if (getPowerUsage() > getPowerSupply()) penalty += 3;
+    if (penalty > 0) {
+      game.happiness = Math.max(0, game.happiness - penalty);
+      updateUI();
+    }
+  }
+  
+  function calcIncomePerTick() {
+    const population = calcPopulation();
+    const storeIncomeTotal = totalStores() * (buildingsInfo.store.storeIncome || 0);
+    const baseIncome = (population + storeIncomeTotal) * getIncomeMultiplier();
+    return baseIncome * getHappinessMultiplier() * getStageMultiplier() * getRoadEfficiency() * getPowerEfficiency();
+  }
+  
   function getUpgradeCost(type) {
     const level = game.upgrades[type];
     if (type === 'income') return [1000,2000,4000,8000,16000][level] ?? Infinity;
@@ -185,7 +326,6 @@ hr { margin:20px 0; }
     return 0;
   }
 
-  // ---- Уровни и награды ----
   function getMaxLevelByWooden(wooden) {
     let maxLvl = 1;
     for (let req of levelRequirements) {
@@ -215,21 +355,42 @@ hr { margin:20px 0; }
     if (!next) return { needed: null, current, maxLevelReached: true };
     return { needed: next.woodenNeeded, current, maxLevelReached: false };
   }
-  function updateLevelUI() {
-    document.getElementById("level").innerText = game.level;
-    const info = getNextLevelInfo();
-    if (info.maxLevelReached) {
-      document.getElementById("levelProgressText").innerHTML = `(Максимальный уровень достигнут! 🏆)`;
-      document.getElementById("levelProgressFill").style.width = "100%";
-    } else {
-      const percent = (info.current / info.needed) * 100;
-      document.getElementById("levelProgressText").innerHTML = `(${info.current}/${info.needed} деревянных домов)`;
-      document.getElementById("levelProgressFill").style.width = percent + "%";
+
+  function checkCityStage() {
+    const houses = totalHouses();
+    const stores = totalStores();
+    let newStage = game.cityStage;
+    for (let i = cityStages.length-1; i >= 0; i--) {
+      if (houses >= cityStages[i].housesRequired && stores >= cityStages[i].storesRequired) {
+        newStage = i;
+        break;
+      }
+    }
+    if (newStage > game.cityStage) {
+      for (let i = game.cityStage+1; i <= newStage; i++) {
+        game.money += cityStages[i].reward;
+      }
+      game.cityStage = newStage;
+      updateUI();
+      scheduleSave();
     }
   }
 
-  // ---- Разблокировка зданий ----
+  function adjustHappinessTowardsTarget() {
+    const houses = totalHouses();
+    const stores = totalStores();
+    let targetHappiness = 50 + stores * 4 - Math.floor(houses / 10);
+    targetHappiness = Math.min(100, Math.max(0, targetHappiness));
+    if (game.happiness !== targetHappiness) {
+      game.happiness += (targetHappiness - game.happiness) * 0.02;
+      game.happiness = Math.min(100, Math.max(0, game.happiness));
+      updateUI();
+      scheduleSave();
+    }
+  }
+
   function isBuildingUnlocked(type) {
+    if (type === 'store' || type === 'road' || type === 'power_station') return true;
     if (type.startsWith("wooden")) return true;
     if (type.startsWith("brick")) {
       if (type === "brick_small") return totalWooden() >= 5;
@@ -240,6 +401,7 @@ hr { margin:20px 0; }
     return false;
   }
   function getRequirementText(type) {
+    if (type === 'store') return "";
     if (type.startsWith("brick")) {
       const needed = type === "brick_small" ? 5 : (type === "brick_medium" ? 10 : 20);
       return `${needed} деревянных домов (сейчас ${totalWooden()})`;
@@ -248,7 +410,6 @@ hr { margin:20px 0; }
     return "";
   }
 
-  // ---- Офлайн-доход ----
   function processOfflineIncome() {
     const now = Date.now();
     const last = game.lastSaveTime;
@@ -258,24 +419,24 @@ hr { margin:20px 0; }
     const secondsPassed = msPassed / 1000;
     let ticks = Math.floor(secondsPassed / 3);
     if (ticks <= 0) return;
-    const maxTicks = 7 * 24 * 3600 / 3; // 7 дней максимум
+    const maxTicks = 7 * 24 * 3600 / 3;
     ticks = Math.min(ticks, maxTicks);
-    const people = calcPopulation();
-    const incomePerTick = people * getIncomeMultiplier();
+    const incomePerTick = calcIncomePerTick();
     const offlineMoney = incomePerTick * ticks;
     game.money += offlineMoney;
-    if (secondsPassed > 3600) game.money += 500; // бонус за возвращение
+    if (secondsPassed > 3600) game.money += 500;
     console.log(`Офлайн-доход: ${ticks} тиков, +${offlineMoney.toFixed(0)}💰`);
     updateUI();
   }
 
-  // ---- UI обновление ----
   function updateUI() {
     document.getElementById("money").innerText = Math.floor(game.money);
     document.getElementById("people").innerText = calcPopulation();
     document.getElementById("happy").innerText = Math.min(100, Math.max(0, game.happiness));
-    const incomePerTick = calcPopulation() * getIncomeMultiplier();
-    document.getElementById("incomePerTick").innerText = incomePerTick.toFixed(1);
+    const income = calcIncomePerTick();
+    document.getElementById("incomePerTick").innerText = income.toFixed(1);
+    document.getElementById("happinessMultDisplay").innerText = getHappinessMultiplier().toFixed(2);
+    document.getElementById("stageMultiplierDisplay").innerText = `(x${getStageMultiplier().toFixed(1)} доход)`;
 
     for (let type in basePrices) {
       const price = getEffectivePrice(type);
@@ -286,7 +447,14 @@ hr { margin:20px 0; }
       if (btn) {
         const unlocked = isBuildingUnlocked(type);
         const canAfford = game.money >= price;
-        btn.disabled = !(unlocked && canAfford);
+        // Для инфраструктурных зданий не проверяем дороги/электричество (они сами создают ресурсы)
+        if (type !== 'road' && type !== 'power_station') {
+          const infra = canBuildWithInfra(type, game.buildings[type] + 1);
+          if (!infra.ok) btn.disabled = true;
+          else btn.disabled = !(unlocked && canAfford);
+        } else {
+          btn.disabled = !(unlocked && canAfford);
+        }
         btn.title = !unlocked ? `Требуется: ${getRequirementText(type)}` : (canAfford ? "" : "Не хватает денег");
       }
       if (countSpan) countSpan.innerText = `(построено: ${game.buildings[type]})`;
@@ -313,15 +481,65 @@ hr { margin:20px 0; }
     document.getElementById("btn_happinessUpgrade").disabled = game.upgrades.happiness >= getMaxLevel('happiness') || game.money < hapPrice;
 
     updateLevelUI();
+
+    // Отображение этапа
+    const stage = cityStages[game.cityStage];
+    document.getElementById("cityStageName").innerText = stage.name;
+    const nextStage = cityStages[game.cityStage+1];
+    if (nextStage) {
+      const houses = totalHouses();
+      const stores = totalStores();
+      const housesProgress = Math.min(100, (houses / nextStage.housesRequired) * 100);
+      const storesProgress = Math.min(100, (stores / nextStage.storesRequired) * 100);
+      document.getElementById("stageHousesProgress").style.width = housesProgress + "%";
+      document.getElementById("stageStoresProgress").style.width = storesProgress + "%";
+      document.getElementById("stageRequirements").innerHTML = `🏠 ${houses}/${nextStage.housesRequired} домов | 🛒 ${stores}/${nextStage.storesRequired} магазинов`;
+    } else {
+      document.getElementById("stageRequirements").innerHTML = "✨ Максимальный этап достигнут!";
+      document.getElementById("stageHousesProgress").style.width = "100%";
+      document.getElementById("stageStoresProgress").style.width = "100%";
+    }
+    
+    // Обновление инфраструктурных показателей
+    const roadCapacity = getRoadCapacity();
+    const roadUsed = getUsedRoadCapacity();
+    const powerSupply = getPowerSupply();
+    const powerUsage = getPowerUsage();
+    document.getElementById("roadUsage").innerText = roadUsed;
+    document.getElementById("roadCapacity").innerText = roadCapacity;
+    document.getElementById("powerUsage").innerText = powerUsage;
+    document.getElementById("powerSupply").innerText = powerSupply;
+    const efficiency = (getRoadEfficiency() * getPowerEfficiency() * 100).toFixed(0);
+    document.getElementById("infraEfficiency").innerText = efficiency;
   }
 
-  // ---- Действия ----
+  function updateLevelUI() {
+    document.getElementById("level").innerText = game.level;
+    const info = getNextLevelInfo();
+    if (info.maxLevelReached) {
+      document.getElementById("levelProgressText").innerHTML = `(Максимальный уровень достигнут! 🏆)`;
+      document.getElementById("levelProgressFill").style.width = "100%";
+    } else {
+      const percent = (info.current / info.needed) * 100;
+      document.getElementById("levelProgressText").innerHTML = `(${info.current}/${info.needed} деревянных домов)`;
+      document.getElementById("levelProgressFill").style.width = percent + "%";
+    }
+  }
+
   function build(type) {
     const info = buildingsInfo[type];
     if (!info) return;
     if (!isBuildingUnlocked(type)) {
       alert(`${info.name} пока недоступен. ${getRequirementText(type)}`);
       return;
+    }
+    // Проверка инфраструктуры (кроме дорог и станций)
+    if (type !== 'road' && type !== 'power_station') {
+      const infraCheck = canBuildWithInfra(type);
+      if (!infraCheck.ok) {
+        alert(infraCheck.reason);
+        return;
+      }
     }
     const price = getEffectivePrice(type);
     if (game.money < price) {
@@ -332,7 +550,10 @@ hr { margin:20px 0; }
     game.buildings[type]++;
     game.happiness = Math.min(100, game.happiness + info.baseHappiness + getHappinessBonus());
     updateUI();
-    if (type.startsWith("wooden")) checkLevelUp();
+    if (type !== 'store' && type !== 'road' && type !== 'power_station') {
+      checkLevelUp();
+    }
+    checkCityStage();
     scheduleSave();
   }
 
@@ -346,7 +567,6 @@ hr { margin:20px 0; }
     scheduleSave();
   }
 
-  // ---- Сохранение / загрузка ----
   function saveGame() {
     game.lastSaveTime = Date.now();
     const toSave = {
@@ -355,6 +575,7 @@ hr { margin:20px 0; }
       buildings: game.buildings,
       upgrades: game.upgrades,
       level: game.level,
+      cityStage: game.cityStage,
       lastSaveTime: game.lastSaveTime
     };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(toSave));
@@ -373,27 +594,32 @@ hr { margin:20px 0; }
         const data = JSON.parse(saved);
         game.money = data.money ?? START_MONEY;
         game.happiness = data.happiness ?? 50;
-        if (data.buildings) Object.assign(game.buildings, data.buildings);
+        if (data.buildings) {
+          Object.assign(game.buildings, data.buildings);
+          if (game.buildings.road === undefined) game.buildings.road = 0;
+          if (game.buildings.power_station === undefined) game.buildings.power_station = 0;
+        }
         if (data.upgrades) Object.assign(game.upgrades, data.upgrades);
         game.level = data.level ?? 1;
+        game.cityStage = data.cityStage ?? 0;
         game.lastSaveTime = data.lastSaveTime ?? Date.now();
       } catch(e) { console.warn(e); }
     }
-    // Обрабатываем офлайн-доход до обновления UI и проверки уровней
     processOfflineIncome();
-    checkLevelUp(); // чтобы награды за уровни пришли после офлайн-денег
+    checkLevelUp();
+    checkCityStage();
     updateUI();
-    scheduleSave(); // сразу обновим lastSaveTime
+    scheduleSave();
   }
 
-  // ---- Автодоход во время игры ----
   setInterval(() => {
-    const people = calcPopulation();
-    if (people > 0) {
-      game.money += people * getIncomeMultiplier();
+    if (calcPopulation() > 0 || totalStores() > 0) {
+      game.money += calcIncomePerTick();
       updateUI();
       scheduleSave();
     }
+    adjustHappinessTowardsTarget();
+    applyInfrastructurePenalties();
   }, 3000);
 
   window.build = build;

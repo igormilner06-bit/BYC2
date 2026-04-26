@@ -1,338 +1,147 @@
-import asyncio
-import random
-import json
-import os
-import sqlite3
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>City Game</title>
 
-from aiogram import Bot, Dispatcher, types, F
-from aiogram.filters import Command
-from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+<style>
+body { font-family: Arial; margin:0; background:#eef2f7; }
+.container { padding:15px; }
+.card { background:#fff; padding:15px; margin-bottom:10px; border-radius:12px; }
+button { padding:10px; margin:5px 0; width:100%; }
+</style>
+</head>
 
-# =======================
-# 🔑 TOKEN
-# =======================
-TOKEN = os.getenv("BOT_TOKEN", "PUT_YOUR_TOKEN_HERE")
+<body>
+<div class="container">
 
-bot = Bot(token=TOKEN)
-dp = Dispatcher()
+<h2>🏙️ City Game</h2>
 
-# =======================
-# 💾 DATABASE
-# =======================
-conn = sqlite3.connect("city_game.db")
-cursor = conn.cursor()
+<div class="card">
+  💰 Деньги: <span id="money"></span><br>
+  👥 Люди: <span id="people"></span><br>
+  😊 Счастье: <span id="happy"></span>
+</div>
 
-cursor.execute("""
-CREATE TABLE IF NOT EXISTS players (
-    user_id INTEGER PRIMARY KEY,
-    residents INTEGER,
-    industry INTEGER,
-    ecology INTEGER,
-    budget INTEGER,
-    happiness INTEGER,
-    history TEXT,
-    policy TEXT,
-    level INTEGER,
-    exp INTEGER
-)
-""")
-conn.commit()
+<button onclick="build()">🏠 Построить дом</button>
 
-# =======================
-# 👤 PLAYER
-# =======================
-def get_player(user_id):
-    cursor.execute("SELECT * FROM players WHERE user_id = ?", (user_id,))
-    row = cursor.fetchone()
+</div>
 
-    if row:
-        return {
-            "👥": row[1],
-            "🏭": row[2],
-            "🌿": row[3],
-            "💰": row[4],
-            "😊": row[5],
-            "history": json.loads(row[6]),
-            "policy": row[7],
-            "level": row[8],
-            "exp": row[9]
-        }
+<script type="module">
 
-    player = {
-        "👥": 10,
-        "🏭": 5,
-        "🌿": 10,
-        "💰": 100,
-        "😊": 8,
-        "history": [],
-        "policy": None,
-        "level": 1,
-        "exp": 0
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+// Firebase
+const firebaseConfig = {
+  apiKey: "AIzaSyDiESFdpgCfwaHPbn5DVvde82bmTUn_92A",
+  authDomain: "game-124da.firebaseapp.com",
+  projectId: "game-124da",
+  storageBucket: "game-124da.firebasestorage.app",
+  messagingSenderId: "323957265964",
+  appId: "1:323957265964:web:2ef3e6dbaea06b0c12e389"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+// Telegram
+const tg = window.Telegram?.WebApp;
+tg?.ready?.();
+tg?.expand?.();
+
+// ===== USER ID FIX =====
+function getUserId() {
+    const user = tg?.initDataUnsafe?.user;
+
+    if (user?.id) {
+        return "tg_" + user.id;
     }
 
-    cursor.execute("""
-    INSERT INTO players VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    """, (
-        user_id,
-        player["👥"],
-        player["🏭"],
-        player["🌿"],
-        player["💰"],
-        player["😊"],
-        json.dumps(player["history"]),
-        player["policy"],
-        player["level"],
-        player["exp"]
-    ))
-    conn.commit()
+    return null;
+}
 
-    return player
+let userId = getUserId();
 
+if (!userId) {
+    console.log("NO TELEGRAM USER → fallback mode");
+    userId = "guest_" + Math.random().toString(36).slice(2,8);
+}
 
-def save_player(user_id, p):
-    cursor.execute("""
-    UPDATE players SET
-        residents=?,
-        industry=?,
-        ecology=?,
-        budget=?,
-        happiness=?,
-        history=?,
-        policy=?,
-        level=?,
-        exp=?
-    WHERE user_id=?
-    """, (
-        p["👥"],
-        p["🏭"],
-        p["🌿"],
-        p["💰"],
-        p["😊"],
-        json.dumps(p["history"]),
-        p["policy"],
-        p["level"],
-        p["exp"],
-        user_id
-    ))
-    conn.commit()
+console.log("USER ID FINAL:", userId);
 
-# =======================
-# 🏙 RANK SYSTEM
-# =======================
-def get_city_rank(level):
-    if level <= 2:
-        return "🏡 Деревня", "Тихое место"
-    elif level <= 4:
-        return "🏘 Посёлок", "Город растёт"
-    elif level <= 6:
-        return "🏙 Город", "Развитая инфраструктура"
-    elif level <= 8:
-        return "🌆 Большой город", "Активная экономика"
-    elif level <= 10:
-        return "🌇 Мегаполис", "Региональный центр"
-    else:
-        return "🌐 Город будущего", "Технологическая столица"
+// ===== GAME DATA =====
+let game = {
+    money: 500,
+    people: 0,
+    happiness: 50
+};
 
+// ===== LOAD =====
+async function loadGame() {
+    try {
+        const ref = doc(db, "cities", userId);
+        const snap = await getDoc(ref);
 
-# =======================
-# 📈 EXP / LEVEL
-# =======================
-def calculate_exp(p):
-    return p["👥"] + p["🏭"] + p["🌿"] + p["😊"] + p["💰"] // 10
+        if (snap.exists()) {
+            game = snap.data();
+        }
 
+        update();
+    } catch (e) {
+        console.log("LOAD ERROR:", e);
+    }
+}
 
-def check_level_up(p):
-    old_rank = get_city_rank(p["level"])[0]
+// ===== SAVE =====
+async function saveGame() {
+    try {
+        const ref = doc(db, "cities", userId);
+        await setDoc(ref, game);
+        console.log("SAVED");
+    } catch (e) {
+        console.log("SAVE ERROR:", e);
+    }
+}
 
-    p["exp"] = calculate_exp(p)
+// debounce save
+let saveTimeout;
+function scheduleSave() {
+    clearTimeout(saveTimeout);
+    saveTimeout = setTimeout(saveGame, 1000);
+}
 
-    if p["exp"] >= p["level"] * 50:
-        p["level"] += 1
-        level_up = True
-    else:
-        level_up = False
+// ===== GAME LOGIC =====
+function update() {
+    document.getElementById("money").innerText = game.money;
+    document.getElementById("people").innerText = game.people;
+    document.getElementById("happy").innerText = game.happiness;
 
-    new_rank = get_city_rank(p["level"])[0]
+    scheduleSave();
+}
 
-    return level_up, old_rank != new_rank, new_rank
+function build() {
+    game.money -= 100;
+    game.people += 10;
+    game.happiness += 2;
 
+    update();
+}
 
-# =======================
-# 🎮 KEYBOARDS
-# =======================
-def main_menu():
-    return InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="🏗️ Начать стройку", callback_data="start")],
-        [InlineKeyboardButton(text="📊 Статистика", callback_data="stats")]
-    ])
+// ===== AUTO INCOME =====
+setInterval(() => {
+    game.money += game.people * 2;
+    update();
+}, 3000);
 
+// ===== START =====
+loadGame();
 
-def game_menu():
-    return InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="🏭 Завод", callback_data="factory")],
-        [InlineKeyboardButton(text="🌿 Парк", callback_data="park")],
-        [InlineKeyboardButton(text="🎲 Событие", callback_data="event")],
-        [InlineKeyboardButton(text="🏆 Достижения", callback_data="stats")]
-    ])
+// expose
+window.build = build;
 
+</script>
 
-# =======================
-# 🚀 START
-# =======================
-@dp.message(Command("start"))
-async def start(message: types.Message):
-    await message.answer(
-        "🏙️ Город мечты\nТы — мэр своего города!",
-        reply_markup=main_menu()
-    )
-
-
-# =======================
-# 🏗 START GAME
-# =======================
-@dp.callback_query(F.data == "start")
-async def start_game(callback: types.CallbackQuery):
-    p = get_player(callback.from_user.id)
-
-    text = (
-        "🏗️ Строительство началось!\n\n"
-        "Что построим первым?"
-    )
-
-    await callback.message.edit_text(text, reply_markup=game_menu())
-    await callback.answer()
-
-
-# =======================
-# 🏭 FACTORY
-# =======================
-@dp.callback_query(F.data == "factory")
-async def factory(callback: types.CallbackQuery):
-    p = get_player(callback.from_user.id)
-
-    p["🏭"] += 10
-    p["💰"] += 20
-    p["🌿"] -= 5
-    p["history"].append("factory")
-
-    if p["history"].count("factory") >= 2:
-        p["policy"] = "industry"
-
-    level_up, rank_up, rank = check_level_up(p)
-
-    msg = "🏭 Завод построен"
-
-    if p["policy"] == "industry":
-        msg += "\n📈 Индустриальный бонус"
-
-    if level_up:
-        msg += f"\n🎉 Уровень повышен: {p['level']}"
-
-    if rank_up:
-        msg += f"\n🏆 Новый ранг: {rank}"
-
-    save_player(callback.from_user.id, p)
-
-    await callback.message.edit_text(msg, reply_markup=game_menu())
-    await callback.answer()
-
-
-# =======================
-# 🌿 PARK
-# =======================
-@dp.callback_query(F.data == "park")
-async def park(callback: types.CallbackQuery):
-    p = get_player(callback.from_user.id)
-
-    p["😊"] += 8
-    p["🌿"] += 5
-    p["💰"] -= 10
-    p["history"].append("park")
-
-    if p["history"].count("park") >= 2:
-        p["policy"] = "eco"
-
-    level_up, rank_up, rank = check_level_up(p)
-
-    msg = "🌿 Парк построен"
-
-    if p["policy"] == "eco":
-        msg += "\n🌱 Эко-бонус"
-
-    if level_up:
-        msg += f"\n🎉 Уровень повышен: {p['level']}"
-
-    if rank_up:
-        msg += f"\n🏆 Новый ранг: {rank}"
-
-    save_player(callback.from_user.id, p)
-
-    await callback.message.edit_text(msg, reply_markup=game_menu())
-    await callback.answer()
-
-
-# =======================
-# 🎲 EVENTS
-# =======================
-@dp.callback_query(F.data == "event")
-async def event(callback: types.CallbackQuery):
-    p = get_player(callback.from_user.id)
-
-    if p["policy"] == "industry":
-        events = [
-            ("🏭 Инвестиции +20💰", lambda p: p.update({"💰": p["💰"] + 20})),
-            ("🌫 Загрязнение -10🌿", lambda p: p.update({"🌿": p["🌿"] - 10}))
-        ]
-    elif p["policy"] == "eco":
-        events = [
-            ("🌿 Туризм +10💰", lambda p: p.update({"💰": p["💰"] + 10})),
-            ("😊 Эффект парка +5", lambda p: p.update({"😊": p["😊"] + 5}))
-        ]
-    else:
-        events = [
-            ("🎉 Фестиваль +5😊", lambda p: p.update({"😊": p["😊"] + 5})),
-            ("💸 Расход -10💰", lambda p: p.update({"💰": p["💰"] - 10}))
-        ]
-
-    text, effect = random.choice(events)
-    effect(p)
-
-    save_player(callback.from_user.id, p)
-
-    await callback.message.edit_text(text, reply_markup=game_menu())
-    await callback.answer()
-
-
-# =======================
-# 📊 STATS + RANK
-# =======================
-@dp.callback_query(F.data == "stats")
-async def stats(callback: types.CallbackQuery):
-    p = get_player(callback.from_user.id)
-
-    rank, desc = get_city_rank(p["level"])
-
-    text = (
-        f"{rank}\n{desc}\n\n"
-        f"🏙 Уровень: {p['level']}\n"
-        f"⭐ Опыт: {p['exp']}\n\n"
-        f"👥 {p['👥']}\n"
-        f"🏭 {p['🏭']}\n"
-        f"🌿 {p['🌿']}\n"
-        f"💰 {p['💰']}\n"
-        f"😊 {p['😊']}"
-    )
-
-    await callback.message.edit_text(text, reply_markup=game_menu())
-    await callback.answer()
-
-
-# =======================
-# ▶ RUN
-# =======================
-async def main():
-    await dp.start_polling(bot)
-
-
-if __name__ == "__main__":
-    asyncio.run(main())
+</body>
+</html>

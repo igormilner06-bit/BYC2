@@ -589,7 +589,7 @@ hr { margin:20px 0; }
       if (info.type === 'wooden') {
         text = `${info.current}/${info.needed} деревянных домов`;
       } else {
-        text = `${info.current}/${info.needed} очков развития (кирпичные, многоэтажки, магазины, школы, заводы)`;
+        text = `${info.current}/${info.needed}`;
       }
       document.getElementById("levelProgressText").innerHTML = `(${text})`;
       document.getElementById("levelProgressFill").style.width = percent + "%";

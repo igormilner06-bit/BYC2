@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>City Game — Экономика, инфраструктура, уровни</title>
+<title>City Game — Экономика, инфраструктура, уровни до 100</title>
 <style>
 body { font-family: Arial; margin:0; background:#eef2f7; }
 .container { padding:15px; max-width:600px; margin:auto; }
@@ -41,11 +41,12 @@ hr { margin:20px 0; }
     📈 Доход за 3 сек: <span id="incomePerTick">0</span><br>
     🛣️ Дороги: <span id="roadUsage">0</span>/<span id="roadCapacity">0</span><br>
     ⚡ Электричество: <span id="powerUsage">0</span>/<span id="powerSupply">0</span><br>
-    📉 Эффективность: <span id="infraEfficiency">100</span>%
+    📉 Эффективность: <span id="infraEfficiency">100</span>%<br>
+    ⭐ Очки развития: <span id="devPoints">0</span>
   </div>
 
   <div class="building-group">
-    <h3>🪵 Деревянные дома (определяют уровень)</h3>
+    <h3>🪵 Деревянные дома (определяют уровень 1-10)</h3>
     <button id="btn_wooden_small" onclick="build('wooden_small')">
       🏠 Деревянный малый <span class="building-price" id="price_wooden_small">250</span>💰 +5 жит.
       <span class="building-count" id="count_wooden_small">0</span>
@@ -61,7 +62,7 @@ hr { margin:20px 0; }
   </div>
 
   <div class="building-group">
-    <h3>🧱 Кирпичные дома (от 5+ деревянных)</h3>
+    <h3>🧱 Кирпичные дома (дают очки развития)</h3>
     <button id="btn_brick_small" onclick="build('brick_small')">
       🧱 Кирпичный малый <span class="building-price" id="price_brick_small">4000</span>💰 +40 жит.
       <span class="building-count" id="count_brick_small">0</span>
@@ -77,7 +78,7 @@ hr { margin:20px 0; }
   </div>
 
   <div class="building-group">
-    <h3>🏙️ Многоэтажные (от 5+ кирпичных)</h3>
+    <h3>🏙️ Многоэтажные (много очков развития)</h3>
     <button id="btn_multistory" onclick="build('multistory')">
       🏙️ Многоэтажный дом <span class="building-price" id="price_multistory">20000</span>💰 +350 жит.
       <span class="building-count" id="count_multistory">0</span>
@@ -139,7 +140,7 @@ hr { margin:20px 0; }
   if (tg) { tg.ready(); tg.expand(); }
 
   const STORAGE_KEY = "cityGameOffline_" + (tg?.initDataUnsafe?.user?.id || "guest");
-  const START_MONEY = 10000;  // изменено с 500 на 10000
+  const START_MONEY = 10000;
 
   let game = {
     money: START_MONEY,
@@ -164,14 +165,46 @@ hr { margin:20px 0; }
     lastSaveTime: Date.now()
   };
 
-  // === НОВАЯ СИСТЕМА УРОВНЕЙ (до 100, динамическая генерация) ===
+  // === ОЧКИ РАЗВИТИЯ (для уровней выше 10) ===
+  const developmentPoints = {
+    wooden_small: 1,
+    wooden_medium: 1,
+    wooden_large: 1,
+    brick_small: 2,
+    brick_medium: 3,
+    brick_large: 4,
+    multistory: 8,
+    store: 1,
+    school: 2,
+    factory: 3,
+    road: 0,
+    power_station: 0
+  };
+
+  function calcDevelopmentPoints() {
+    let points = 0;
+    for (const [type, pts] of Object.entries(developmentPoints)) {
+      points += (game.buildings[type] || 0) * pts;
+    }
+    return points;
+  }
+
+  // === ГЕНЕРАЦИЯ ТРЕБОВАНИЙ ДЛЯ УРОВНЕЙ 1-100 ===
   function generateLevelRequirements() {
     const reqs = [];
-    for (let level = 2; level <= 100; level++) {
-      let woodenNeeded = Math.round(3 * Math.pow(1.09, level - 2));
-      woodenNeeded = Math.min(woodenNeeded, 2000);
-      const reward = Math.floor(1000 * Math.pow(1.12, level - 2));
-      reqs.push({ level, woodenNeeded, reward });
+    // Уровни 2..10: только деревянные дома
+    for (let level = 2; level <= 10; level++) {
+      let woodenNeeded = Math.round(3 * Math.pow(1.35, level - 2));
+      woodenNeeded = Math.min(woodenNeeded, 100);
+      const reward = Math.floor(500 * Math.pow(1.3, level - 2));
+      reqs.push({ level, woodenNeeded, pointsNeeded: 0, reward });
+    }
+    // Уровни 11..100: очки развития
+    for (let level = 11; level <= 100; level++) {
+      let pointsNeeded = Math.floor(50 * Math.pow(1.08, level - 10));
+      pointsNeeded = Math.min(pointsNeeded, 5000);
+      const reward = Math.floor(2000 * Math.pow(1.1, level - 10));
+      reqs.push({ level, woodenNeeded: 999999, pointsNeeded, reward });
     }
     return reqs;
   }
@@ -197,7 +230,6 @@ hr { margin:20px 0; }
     factory: 8000
   };
 
-  // Информация о зданиях (увеличенное население для кирпичных и многоэтажки)
   const buildingsInfo = {
     wooden_small: { name:"Деревянный малый", people:5,   baseHappiness:1, storeIncome:0 },
     wooden_medium:{ name:"Деревянный средний", people:12, baseHappiness:2, storeIncome:0 },
@@ -213,7 +245,6 @@ hr { margin:20px 0; }
     factory:      { name:"🏭 Завод",          people:0,   baseHappiness:-5,storeIncome:30 }
   };
 
-  // Потребление энергии (рефакторинг)
   const energyConsumption = {
     wooden_small: 1, wooden_medium: 1, wooden_large: 1,
     brick_small: 2, brick_medium: 2, brick_large: 2,
@@ -223,7 +254,7 @@ hr { margin:20px 0; }
     factory: 8
   };
 
-  // === ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ===
+  // === ОСНОВНЫЕ ФУНКЦИИ ===
   function totalWooden() {
     return game.buildings.wooden_small + game.buildings.wooden_medium + game.buildings.wooden_large;
   }
@@ -328,21 +359,38 @@ hr { margin:20px 0; }
     return 0;
   }
 
+  // Уровни: для 1-10 по деревянным домам
   function getMaxLevelByWooden(wooden) {
     let maxLvl = 1;
     for (let req of levelRequirements) {
-      if (wooden >= req.woodenNeeded) maxLvl = req.level;
-      else break;
+      if (req.level <= 10 && wooden >= req.woodenNeeded) maxLvl = req.level;
+      else if (req.level > 10) break;
     }
     return maxLvl;
   }
+  // для уровней 11+ по очкам развития
+  function getMaxLevelByPoints(points) {
+    let maxLvl = 1;
+    for (let req of levelRequirements) {
+      if (req.level > 10 && points >= req.pointsNeeded) maxLvl = req.level;
+      else if (req.level <= 10) continue;
+      else break;
+    }
+    // также учитываем, что если деревянные дома дали уровень выше 10, то очки могут дать больше
+    return maxLvl;
+  }
+
   function grantReward(level) {
     const req = levelRequirements.find(r => r.level === level);
     if (req) game.money += req.reward;
   }
+
   function checkLevelUp() {
     const wooden = totalWooden();
-    const newMax = getMaxLevelByWooden(wooden);
+    const points = calcDevelopmentPoints();
+    const maxByWooden = getMaxLevelByWooden(wooden);
+    const maxByPoints = getMaxLevelByPoints(points);
+    const newMax = Math.max(maxByWooden, maxByPoints);
     let changed = false;
     while (game.level < newMax) {
       game.level++;
@@ -351,11 +399,20 @@ hr { margin:20px 0; }
     }
     if (changed) updateUI();
   }
+
   function getNextLevelInfo() {
-    const current = totalWooden();
-    const next = levelRequirements.find(r => r.woodenNeeded > current);
-    if (!next) return { needed: null, current, maxLevelReached: true };
-    return { needed: next.woodenNeeded, current, maxLevelReached: false };
+    const currentLevel = game.level;
+    const nextReq = levelRequirements.find(r => r.level === currentLevel + 1);
+    if (!nextReq) return { needed: null, current: null, maxLevelReached: true };
+    if (nextReq.level <= 10) {
+      const current = totalWooden();
+      const needed = nextReq.woodenNeeded;
+      return { needed, current, maxLevelReached: false, type: 'wooden' };
+    } else {
+      const current = calcDevelopmentPoints();
+      const needed = nextReq.pointsNeeded;
+      return { needed, current, maxLevelReached: false, type: 'points' };
+    }
   }
 
   function checkCityStage() {
@@ -442,6 +499,7 @@ hr { margin:20px 0; }
     document.getElementById("incomePerTick").innerText = income.toFixed(1);
     document.getElementById("happinessMultDisplay").innerText = getHappinessMultiplier().toFixed(2);
     document.getElementById("stageMultiplierDisplay").innerText = `(x${getStageMultiplier().toFixed(1)} доход)`;
+    document.getElementById("devPoints").innerText = calcDevelopmentPoints();
 
     for (let type in basePrices) {
       const price = getEffectivePrice(type);
@@ -486,7 +544,6 @@ hr { margin:20px 0; }
 
     updateLevelUI();
 
-    // Отображение этапов с учётом населения
     const stage = cityStages[game.cityStage];
     document.getElementById("cityStageName").innerText = stage.name;
     const nextStage = cityStages[game.cityStage+1];
@@ -528,7 +585,13 @@ hr { margin:20px 0; }
       document.getElementById("levelProgressFill").style.width = "100%";
     } else {
       const percent = (info.current / info.needed) * 100;
-      document.getElementById("levelProgressText").innerHTML = `(${info.current}/${info.needed} деревянных домов)`;
+      let text = '';
+      if (info.type === 'wooden') {
+        text = `${info.current}/${info.needed} деревянных домов`;
+      } else {
+        text = `${info.current}/${info.needed} очков развития (кирпичные, многоэтажки, магазины, школы, заводы)`;
+      }
+      document.getElementById("levelProgressText").innerHTML = `(${text})`;
       document.getElementById("levelProgressFill").style.width = percent + "%";
     }
   }

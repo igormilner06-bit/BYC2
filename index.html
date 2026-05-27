@@ -3,10 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>City Game — Престиж, события, экология</title>
+<title>City Game — Районы, престиж, события</title>
 <style>
   body { font-family: Arial; margin:0; background:#eef2f7; }
-  .container { padding:15px; max-width:700px; margin:auto; }
+  .container { padding:15px; max-width:750px; margin:auto; }
   .card { background:#fff; padding:15px; margin-bottom:10px; border-radius:12px; box-shadow:0 2px 5px rgba(0,0,0,0.1); }
   button { padding:10px; margin:5px 0; width:100%; background:#4CAF50; color:white; border:none; border-radius:8px; cursor:pointer; font-size:16px; transition:0.1s; }
   button:disabled { background:#aaa; cursor:not-allowed; }
@@ -32,12 +32,10 @@
   .ecology-bar { background:#ddd; border-radius:10px; height:8px; margin-top:3px; overflow:hidden; }
   .ecology-fill { background:#8bc34a; width:100%; height:100%; }
   
-  /* Стиль для кнопки Max внутри строки здания */
   .building-row { display: flex; gap: 8px; align-items: center; }
   .building-row button.main-btn { flex: 1; margin:0; }
   .building-row button.max-btn { width: 60px; background:#2196f3; font-size:14px; margin:0; padding:10px 0; }
   
-  /* Анимация уведомлений */
   .notification-area {
     position: fixed;
     top: 20px;
@@ -63,14 +61,37 @@
     70% { opacity: 1; }
     100% { opacity: 0; transform: translateY(-30px); display: none; }
   }
+  .district-card {
+    background:#fef9e6;
+    border-left: 4px solid #ff9800;
+    margin-bottom: 8px;
+    padding: 8px;
+    border-radius: 8px;
+  }
+  .district-active {
+    background:#e8f5e9;
+    border-left: 4px solid #4caf50;
+  }
+  .district-buttons {
+    display: flex;
+    gap: 8px;
+    margin-top: 5px;
+  }
+  .district-buttons button {
+    width: auto;
+    flex: 1;
+    margin: 0;
+    padding: 5px;
+    font-size: 12px;
+  }
 </style>
 </head>
 <body>
 <div class="container">
-  <h2>🏘️ City Game — Престиж, события, экология</h2>
-
-  <!-- Область для всплывающих уведомлений -->
   <div id="notificationArea" class="notification-area"></div>
+
+  <!-- Заголовок с названием города -->
+  <h2 id="cityTitle">🏘️ Загрузка...</h2>
 
   <div class="card">
     <div>🏆 ЭТАП: <strong id="cityStageName">Деревня</strong> <span id="stageMultiplierDisplay">(x1 доход)</span>
@@ -106,6 +127,15 @@
   <div class="card">
     <button id="chestBtn" onclick="openChest()" class="chest-btn">🎁 Открыть сундук (раз в 10 мин)</button>
     <div id="chestTimer" style="font-size:12px; text-align:center;"></div>
+  </div>
+
+  <!-- Блок районов -->
+  <div class="card" id="districtsPanel">
+    <div style="display:flex; justify-content:space-between; align-items:center;">
+      <div style="font-size:1.1em; font-weight:bold;">🏘️ Районы города</div>
+      <button onclick="createDistrict()" style="width:auto; padding:5px 10px; background:#607d8b;">➕ Создать район</button>
+    </div>
+    <div id="districtsList"></div>
   </div>
 
   <!-- Редкие здания (с индивидуальными Max) -->
@@ -192,10 +222,10 @@
 const tg = window.Telegram?.WebApp;
 if (tg) { tg.ready(); tg.expand(); }
 
-const STORAGE_KEY = "cityGameFull_" + (tg?.initDataUnsafe?.user?.id || "guest");
+const STORAGE_KEY = "cityGameDistricts_" + (tg?.initDataUnsafe?.user?.id || "guest");
 const START_MONEY = 10000;
 
-// ========== АНИМАЦИЯ УВЕДОМЛЕНИЙ ==========
+// ========== АНИМАЦИЯ ==========
 function showNotification(message, isPositive = true) {
   const area = document.getElementById("notificationArea");
   const notif = document.createElement("div");
@@ -209,7 +239,7 @@ function showNotification(message, isPositive = true) {
 // ========== ДОСТИЖЕНИЯ ==========
 const achievementsDef = {
   first_million: { name:"💰 Первый миллион", reward:50000, cond:()=>game.money>=1000000 },
-  builder_100: { name:"🏗️ 100 зданий", reward:20000, cond:()=>totalHouses()>=100 },
+  builder_100: { name:"🏗️ 100 зданий", reward:20000, cond:()=>totalBuildings()>=100 },
   happy_max: { name:"😊 Счастье 100", reward:15000, cond:()=>game.happiness>=99 },
   crime_zero: { name:"🚔 Без преступности", reward:25000, cond:()=>game.crimeRate<1 },
   level_50: { name:"📈 Уровень 50", reward:50000, cond:()=>game.level>=50 },
@@ -225,70 +255,187 @@ let game = {
   ecology: 100,
   prestigeBonus: 1.0,
   prestigeCount: 0,
-  buildings: {
-    wooden_small:0, wooden_medium:0, wooden_large:0,
-    brick_small:0, brick_medium:0, brick_large:0, multistory:0,
-    store:0, road:0, power_station:0, school:0, factory:0, police:0, transport:0,
-    tvtower:0, airport:0, bank:0, themepark:0
-  },
+  cityName: "",
+  districts: [],
+  currentDistrict: 0,
+  // Старые поля для совместимости (не используются напрямую, но сохраняются)
+  buildings: {},
   upgrades: { income:0, discount:0, happiness:0, road_capacity:0, energy_efficiency:0, solar_panels:0 },
   achievements: {},
   level:1, cityStage:0, lastSaveTime:Date.now(), lastChestTime:0,
   eventLog: [], migrationBonus:0
 };
+
 for(let id in achievementsDef) if(game.achievements[id]===undefined) game.achievements[id]=false;
 
 let lastDailyClaim = 0;
 const DAILY_REWARD = 25000;
 
-// ========== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ==========
-function addEventLog(msg, showNotif = true) {
-  game.eventLog.unshift(msg+" ("+new Date().toLocaleTimeString()+")");
-  if(game.eventLog.length>10) game.eventLog.pop();
-  const el=document.getElementById("eventLog");
-  if(el) el.innerHTML=game.eventLog.map(m=>`<div>${m}</div>`).join('');
-  if(showNotif) showNotification(msg, true);
+// ========== ФУНКЦИИ РАБОТЫ С РАЙОНАМИ ==========
+function createDistrict(forceName = null) {
+  let name = forceName;
+  if (!name) name = prompt("Введите название нового района:", "Новый район");
+  if (!name) return;
+  const newDistrict = {
+    name: name,
+    happiness: 60,
+    ecology: 100,
+    buildings: {
+      wooden_small:0, wooden_medium:0, wooden_large:0,
+      brick_small:0, brick_medium:0, brick_large:0, multistory:0,
+      store:0, road:0, power_station:0, school:0, factory:0, police:0, transport:0,
+      tvtower:0, airport:0, bank:0, themepark:0
+    }
+  };
+  game.districts.push(newDistrict);
+  if (game.districts.length === 1) game.currentDistrict = 0;
+  updateDistrictUI();
+  saveGame();
+  showNotification(`🏘️ Район "${name}" создан!`, true);
 }
 
-function totalWooden() { return game.buildings.wooden_small+game.buildings.wooden_medium+game.buildings.wooden_large; }
-function totalBrick() { return game.buildings.brick_small+game.buildings.brick_medium+game.buildings.brick_large; }
-function totalHouses() {
-  let sum=0;
-  for(let t in game.buildings) if(!['store','road','power_station','school','factory','police','transport','tvtower','airport','bank','themepark'].includes(t)) sum+=game.buildings[t];
-  return sum;
+function selectDistrict(index) {
+  if (index >= 0 && index < game.districts.length) {
+    game.currentDistrict = index;
+    updateDistrictUI();
+    updateUI(); // чтобы обновить интерфейс зданий и статистики
+    showNotification(`📍 Выбран район: ${game.districts[index].name}`, true);
+  }
 }
-function calcPopulation() {
-  const info={ wooden_small:5, wooden_medium:12, wooden_large:25, brick_small:40, brick_medium:80, brick_large:140, multistory:350, tvtower:0, airport:0, bank:0, themepark:0, store:0, road:0, power_station:0, school:0, factory:0, police:0, transport:0 };
-  let pop=0;
-  for(let t in game.buildings) pop+=game.buildings[t]*(info[t]||0);
+
+function getCurrentDistrict() {
+  if (!game.districts.length) return null;
+  return game.districts[game.currentDistrict];
+}
+
+function calcDistrictPopulation(district) {
+  const peopleMap = {
+    wooden_small:5, wooden_medium:12, wooden_large:25,
+    brick_small:40, brick_medium:80, brick_large:140, multistory:350,
+    tvtower:0, airport:0, bank:0, themepark:0, store:0, road:0, power_station:0, school:0, factory:0, police:0, transport:0
+  };
+  let pop = 0;
+  for (let type in district.buildings) {
+    pop += district.buildings[type] * (peopleMap[type] || 0);
+  }
   return pop;
 }
-function getJobCapacity() {
-  const jobs={ wooden_small:2, wooden_medium:4, wooden_large:6, brick_small:8, brick_medium:12, brick_large:18, multistory:40, store:5, power_station:10, school:8, factory:20, police:6, transport:8, tvtower:20, airport:50, bank:30, themepark:40 };
-  let total=0;
-  for(let t in game.buildings) total+=game.buildings[t]*(jobs[t]||0);
+
+function totalPopulation() {
+  let total = 0;
+  for (let d of game.districts) total += calcDistrictPopulation(d);
   return total;
 }
+
+function totalBuildings() {
+  let total = 0;
+  for (let d of game.districts) {
+    for (let type in d.buildings) total += d.buildings[type];
+  }
+  return total;
+}
+
+function totalJobs() {
+  const jobsMap = {
+    wooden_small:2, wooden_medium:4, wooden_large:6,
+    brick_small:8, brick_medium:12, brick_large:18, multistory:40,
+    store:5, power_station:10, school:8, factory:20, police:6, transport:8,
+    tvtower:20, airport:50, bank:30, themepark:40
+  };
+  let jobs = 0;
+  for (let d of game.districts) {
+    for (let type in d.buildings) jobs += d.buildings[type] * (jobsMap[type] || 0);
+  }
+  return jobs;
+}
+
+function totalWooden() {
+  let sum = 0;
+  for (let d of game.districts) sum += d.buildings.wooden_small + d.buildings.wooden_medium + d.buildings.wooden_large;
+  return sum;
+}
+
+function totalBrick() {
+  let sum = 0;
+  for (let d of game.districts) sum += d.buildings.brick_small + d.buildings.brick_medium + d.buildings.brick_large;
+  return sum;
+}
+
+function totalHouses() {
+  let sum = 0;
+  const houseTypes = ['wooden_small','wooden_medium','wooden_large','brick_small','brick_medium','brick_large','multistory'];
+  for (let d of game.districts) {
+    for (let t of houseTypes) sum += d.buildings[t];
+  }
+  return sum;
+}
+
+function totalStores() {
+  let sum = 0;
+  for (let d of game.districts) sum += d.buildings.store;
+  return sum;
+}
+
+function getDistrictBuildingCount(type) {
+  let sum = 0;
+  for (let d of game.districts) sum += d.buildings[type] || 0;
+  return sum;
+}
+
+function addBuildingToCurrentDistrict(type, count = 1) {
+  if (!game.districts.length) return;
+  const district = game.districts[game.currentDistrict];
+  district.buildings[type] = (district.buildings[type] || 0) + count;
+}
+
+// ========== ОСТАЛЬНАЯ ЛОГИКА (адаптированная под районы) ==========
+function updateEcology() {
+  let pollution = 0;
+  for (let d of game.districts) {
+    pollution += (d.buildings.factory||0)*3 + (d.buildings.power_station||0)*1 - (d.buildings.themepark||0)*5;
+  }
+  pollution = Math.min(80, Math.max(0, pollution));
+  let ecology = 100 - pollution;
+  ecology = Math.min(100, Math.max(0, ecology));
+  game.ecology = ecology;
+}
+
+function getAverageHappiness() {
+  if (game.districts.length === 0) return 60;
+  let sum = 0;
+  for (let d of game.districts) sum += d.happiness;
+  return sum / game.districts.length;
+}
+
+function adjustHappinessTowardsTarget() {
+  let target = 70 - game.taxRate*1.5 + (totalStores())*2 + (getDistrictBuildingCount('school'))*1 + (getDistrictBuildingCount('police'))*0.5 + (getDistrictBuildingCount('transport'))*0.5;
+  target = Math.min(100, Math.max(10, target));
+  // плавно меняем счастье каждого района
+  for (let d of game.districts) {
+    d.happiness += (target - d.happiness) * 0.05;
+    d.happiness = Math.min(100, Math.max(0, d.happiness));
+  }
+  game.happiness = Math.floor(getAverageHappiness());
+}
+
 function getUnemploymentEffect() {
-  let jobs=getJobCapacity(), pop=calcPopulation();
+  let jobs = totalJobs();
+  let pop = totalPopulation();
   if(pop<=0) return 1;
-  let employed=Math.min(jobs,pop);
-  let rate=(pop-employed)/pop;
+  let employed = Math.min(jobs, pop);
+  let rate = (pop-employed)/pop;
   if(rate<=0.1) return 1;
   if(rate<=0.3) return 0.9;
   return 0.7;
 }
-function updateEcology() {
-  let pollution = (game.buildings.factory||0)*3 + (game.buildings.power_station||0)*1 - (game.buildings.themepark||0)*5;
-  pollution=Math.min(80,Math.max(0,pollution));
-  game.ecology=Math.min(100,Math.max(0,100-pollution));
-}
+
 function getEcologyPenalty() {
-  let e=game.ecology;
+  let e = game.ecology;
   if(e>=70) return 1;
   if(e>=40) return 0.8+(e-40)/30*0.2;
   return 0.5+e/40*0.3;
 }
+
 function getDiscountMultiplier() { return Math.max(0,1-game.upgrades.discount*0.05); }
 function getEffectivePrice(type) {
   const prices={ wooden_small:250, wooden_medium:500, wooden_large:1000, brick_small:4000, brick_medium:7000, brick_large:12000, multistory:20000, store:3000, road:400, power_station:4000, school:5000, factory:8000, police:3000, transport:2500, tvtower:100000, airport:150000, bank:120000, themepark:80000 };
@@ -297,145 +444,103 @@ function getEffectivePrice(type) {
 function getIncomeMultiplier() { return (1.2+game.upgrades.income*0.1)*game.prestigeBonus; }
 function getHappinessMultiplier() { return 0.6+game.happiness/100*0.8; }
 function calcCrimeRate() {
-  let pop=calcPopulation(), tax=1+game.taxRate/100;
-  let base=pop/300*(1-game.happiness/100)*tax;
-  let policeEff=game.buildings.police*3;
-  let crime=Math.min(50,Math.max(0,base-policeEff));
+  let pop = totalPopulation();
+  let tax = 1+game.taxRate/100;
+  let base = pop/300 * (1 - game.happiness/100) * tax;
+  let policeEff = getDistrictBuildingCount('police') * 3;
+  let crime = Math.min(50, Math.max(0, base - policeEff));
   return Math.floor(crime*10)/10;
 }
-function getRoadCapacity() { let base=game.buildings.road*5; if(game.upgrades.road_capacity) base=game.buildings.road*10; return base; }
-function getUsedRoadCapacity() { let used=0; for(let t in game.buildings) if(t!='road'&&t!='power_station') used+=game.buildings[t]; return used; }
-function getPowerSupply() { let per=100; if(game.upgrades.solar_panels) per=150; return game.buildings.power_station*per; }
+
+function getRoadCapacity() {
+  let roads = getDistrictBuildingCount('road');
+  let base = roads * 5;
+  if(game.upgrades.road_capacity) base = roads * 10;
+  return base;
+}
+function getUsedRoadCapacity() {
+  let used = 0;
+  for (let d of game.districts) {
+    for (let type in d.buildings) {
+      if (type !== 'road' && type !== 'power_station') used += d.buildings[type];
+    }
+  }
+  return used;
+}
+function getPowerSupply() {
+  let stations = getDistrictBuildingCount('power_station');
+  let per = 100;
+  if(game.upgrades.solar_panels) per = 150;
+  return stations * per;
+}
 function getPowerUsage() {
-  const cons={ wooden_small:1, wooden_medium:1, wooden_large:1, brick_small:2, brick_medium:2, brick_large:2, multistory:5, store:2, school:3, factory:8, police:2, transport:2, tvtower:5, airport:10, bank:3, themepark:4 };
-  let use=0;
-  for(let t in game.buildings) {
-    let c=cons[t]||0;
-    if(game.upgrades.energy_efficiency) c=Math.floor(c*0.8);
-    use+=game.buildings[t]*c;
+  const cons = { wooden_small:1, wooden_medium:1, wooden_large:1, brick_small:2, brick_medium:2, brick_large:2, multistory:5, store:2, school:3, factory:8, police:2, transport:2, tvtower:5, airport:10, bank:3, themepark:4 };
+  let use = 0;
+  for (let d of game.districts) {
+    for (let type in d.buildings) {
+      let c = cons[type] || 0;
+      if(game.upgrades.energy_efficiency) c = Math.floor(c*0.8);
+      use += d.buildings[type] * c;
+    }
   }
   return use;
 }
-function getRoadEfficiency() { return getUsedRoadCapacity()>getRoadCapacity()?0.7:1; }
-function getPowerEfficiency() { return getPowerUsage()>getPowerSupply()?0.5:1; }
+function getRoadEfficiency() { return getUsedRoadCapacity() > getRoadCapacity() ? 0.7 : 1; }
+function getPowerEfficiency() { return getPowerUsage() > getPowerSupply() ? 0.5 : 1; }
 
 function calcIncomePerTick() {
-  let pop=calcPopulation();
-  let extra= (game.buildings.store||0)*15 + (game.buildings.school||0)*5 + (game.buildings.factory||0)*30;
-  let uniqBonus=1+(game.buildings.tvtower||0)*0.1+(game.buildings.airport||0)*0.2;
-  let bankBonus=1+(game.buildings.bank||0)*0.05;
-  let base=(pop+extra)*getIncomeMultiplier();
-  let hMult=getHappinessMultiplier();
-  let transp=1+(game.buildings.transport||0)*0.05;
-  let tax=1+game.taxRate/100;
-  let crime=1-game.crimeRate/100;
-  let eco=getEcologyPenalty();
-  let unemp=getUnemploymentEffect();
-  let stage=cityStages[game.cityStage]?.multiplier||1;
-  let roadEff=getRoadEfficiency(), powerEff=getPowerEfficiency();
-  return base*hMult*transp*tax*crime*eco*unemp*stage*roadEff*powerEff*uniqBonus*bankBonus;
+  let pop = totalPopulation();
+  let extra = (totalStores())*15 + (getDistrictBuildingCount('school'))*5 + (getDistrictBuildingCount('factory'))*30;
+  let uniqBonus = 1 + (getDistrictBuildingCount('tvtower'))*0.1 + (getDistrictBuildingCount('airport'))*0.2;
+  let bankBonus = 1 + (getDistrictBuildingCount('bank'))*0.05;
+  let base = (pop + extra) * getIncomeMultiplier();
+  let hMult = getHappinessMultiplier();
+  let transp = 1 + (getDistrictBuildingCount('transport'))*0.05;
+  let tax = 1 + game.taxRate/100;
+  let crime = 1 - game.crimeRate/100;
+  let eco = getEcologyPenalty();
+  let unemp = getUnemploymentEffect();
+  let stage = cityStages[game.cityStage]?.multiplier || 1;
+  let roadEff = getRoadEfficiency(), powerEff = getPowerEfficiency();
+  return base * hMult * transp * tax * crime * eco * unemp * stage * roadEff * powerEff * uniqBonus * bankBonus;
 }
 
-// ========== ЭТАПЫ ГОРОДА (исправлены пороги) ==========
-const cityStages = [
-  { name: "🌾 Деревня",   scoreRequired: 0.0,  multiplier: 1.0, reward: 0 },
-  { name: "🏘️ Село",      scoreRequired: 0.35, multiplier: 1.2, reward: 10000 },
-  { name: "🏢 ПГТ",       scoreRequired: 0.55, multiplier: 1.5, reward: 20000 },
-  { name: "🏙️ Город",     scoreRequired: 0.75, multiplier: 2.0, reward: 40000 },
-  { name: "🌆 Мегаполис", scoreRequired: 0.90, multiplier: 3.0, reward: 80000 }
-];
-
-function calcCityScore() {
-  let population = calcPopulation();
-  let popNorm = Math.min(1, population / 3000);
-  let happinessNorm = game.happiness / 100;
-  let safetyNorm = (100 - game.crimeRate) / 100;
-  let infraCount = (game.buildings.police || 0) + (game.buildings.transport || 0) + (game.buildings.road || 0)/5 + (game.buildings.power_station || 0)/2;
-  let infraNorm = Math.min(1, infraCount / 20);
-  let score = popNorm * 0.5 + happinessNorm * 0.2 + safetyNorm * 0.2 + infraNorm * 0.1;
-  return Math.min(0.99, Math.max(0, score));
-}
-
-function checkCityStage() {
-  let score = calcCityScore();
-  let newStage = 0;
-  for (let i = cityStages.length-1; i >= 0; i--) {
-    if (score >= cityStages[i].scoreRequired) { newStage = i; break; }
-  }
-  if (score < 0.35) newStage = 0;
-  if (newStage > game.cityStage) {
-    for (let i = game.cityStage+1; i <= newStage; i++) {
-      game.money += cityStages[i].reward;
-      addEventLog(`🏙️ Город достиг этапа: ${cityStages[i].name} +${cityStages[i].reward}💰`);
-    }
-    game.cityStage = newStage;
-  }
-  updateUI();
-}
-
-// ========== УРОВНИ ==========
-function generateLevelRequirements() {
-  let reqs=[];
-  for(let l=2;l<=10;l++) { let need=Math.round(3*Math.pow(1.35,l-2)); need=Math.min(need,100); let rew=Math.floor(500*Math.pow(1.3,l-2)); reqs.push({level:l, woodenNeeded:need, pointsNeeded:0, reward:rew}); }
-  for(let l=11;l<=100;l++) { let need=Math.floor(50*Math.pow(1.08,l-10)); need=Math.min(need,5000); let rew=Math.floor(2000*Math.pow(1.1,l-10)); reqs.push({level:l, woodenNeeded:999999, pointsNeeded:need, reward:rew}); }
-  return reqs;
-}
-const levelRequirements=generateLevelRequirements();
-function calcDevelopmentPoints() {
-  const pts={ wooden_small:1, wooden_medium:1, wooden_large:1, brick_small:2, brick_medium:3, brick_large:4, multistory:8, store:1, school:2, factory:3, police:1, transport:2, tvtower:10, airport:15, bank:12, themepark:8 };
-  let sum=0;
-  for(let t in game.buildings) sum+=game.buildings[t]*(pts[t]||0);
-  return sum;
-}
-function getMaxLevelByWooden(w) { let max=1; for(let r of levelRequirements) if(r.level<=10 && w>=r.woodenNeeded) max=r.level; return max; }
-function getMaxLevelByPoints(p) { let max=1; for(let r of levelRequirements) if(r.level>10 && p>=r.pointsNeeded) max=r.level; return max; }
-function checkLevelUp() {
-  let wood=totalWooden(), pts=calcDevelopmentPoints();
-  let newLvl=Math.max(getMaxLevelByWooden(wood), getMaxLevelByPoints(pts));
-  while(game.level<newLvl) { game.level++; let req=levelRequirements.find(r=>r.level===game.level); if(req) game.money+=req.reward; }
-  updateUI();
-}
-function getNextLevelInfo() {
-  let next=levelRequirements.find(r=>r.level===game.level+1);
-  if(!next) return {maxLevelReached:true};
-  if(next.level<=10) return {needed:next.woodenNeeded, current:totalWooden(), type:'wooden', maxLevelReached:false};
-  else return {needed:next.pointsNeeded, current:calcDevelopmentPoints(), type:'points', maxLevelReached:false};
-}
-
-// ========== ПОСТРОЙКА ==========
 function canBuildWithInfra(type, add=1) {
   if(type==='road'||type==='power_station') return {ok:true};
-  let usedAfter=getUsedRoadCapacity()+add;
-  if(usedAfter>getRoadCapacity()) return {ok:false, reason:`Нужно ещё ${usedAfter-getRoadCapacity()} дорог`};
-  let cons={ wooden_small:1, wooden_medium:1, wooden_large:1, brick_small:2, brick_medium:2, brick_large:2, multistory:5, store:2, school:3, factory:8, police:2, transport:2, tvtower:5, airport:10, bank:3, themepark:4 };
-  let c=cons[type]||0;
-  if(game.upgrades.energy_efficiency) c=Math.floor(c*0.8);
-  let usageAfter=getPowerUsage()+c;
-  let supply=getPowerSupply();
-  if(usageAfter>supply) return {ok:false, reason:`Нужно ещё ${Math.ceil((usageAfter-supply)/(game.upgrades.solar_panels?150:100))} электростанций`};
+  let usedAfter = getUsedRoadCapacity() + add;
+  if(usedAfter > getRoadCapacity()) return {ok:false, reason:`Нужно ещё ${usedAfter-getRoadCapacity()} дорог`};
+  let cons = { wooden_small:1, wooden_medium:1, wooden_large:1, brick_small:2, brick_medium:2, brick_large:2, multistory:5, store:2, school:3, factory:8, police:2, transport:2, tvtower:5, airport:10, bank:3, themepark:4 };
+  let c = cons[type]||0;
+  if(game.upgrades.energy_efficiency) c = Math.floor(c*0.8);
+  let usageAfter = getPowerUsage() + c;
+  let supply = getPowerSupply();
+  if(usageAfter > supply) return {ok:false, reason:`Нужно ещё ${Math.ceil((usageAfter-supply)/(game.upgrades.solar_panels?150:100))} электростанций`};
   return {ok:true};
 }
+
 function animateButton(btnId) { let btn=document.getElementById(btnId); if(btn){ btn.classList.add('flash'); setTimeout(()=>btn.classList.remove('flash'),300); } }
 function isBuildingUnlocked(type) {
   if(['store','road','power_station','school','factory','police','transport','tvtower','airport','bank','themepark'].includes(type)) return true;
   if(type.startsWith('wooden')) return true;
   if(type.startsWith('brick')) { if(type==='brick_small') return totalWooden()>=5; if(type==='brick_medium') return totalWooden()>=10; if(type==='brick_large') return totalWooden()>=20; }
   if(type==='multistory') return totalBrick()>=5;
-  return false;
+  return true;
 }
+
 function build(type) {
-  let info={ baseHappiness:{ wooden_small:1, wooden_medium:2, wooden_large:3, brick_small:4, brick_medium:5, brick_large:7, multistory:10, store:5, school:10, factory:-5, police:2, transport:1, tvtower:5, airport:10, bank:3, themepark:15, road:1, power_station:0 } };
-  let bh=info.baseHappiness[type]||0;
+  let info = { baseHappiness:{ wooden_small:1, wooden_medium:2, wooden_large:3, brick_small:4, brick_medium:5, brick_large:7, multistory:10, store:5, school:10, factory:-5, police:2, transport:1, tvtower:5, airport:10, bank:3, themepark:15, road:1, power_station:0 } };
+  let bh = info.baseHappiness[type] || 0;
   if(!isBuildingUnlocked(type)) { alert("Недоступно"); return; }
-  let price=getEffectivePrice(type);
-  if(game.money<price) { alert(`Не хватает ${price}💰`); return; }
+  let price = getEffectivePrice(type);
+  if(game.money < price) { alert(`Не хватает ${price}💰`); return; }
   if(type!=='road'&&type!=='power_station') { let check=canBuildWithInfra(type); if(!check.ok) { alert(check.reason); return; } }
-  game.money-=price;
-  game.buildings[type]++;
-  game.happiness=Math.min(100, game.happiness+bh+game.upgrades.happiness);
-  if(type==='factory') updateEcology();
-  if(type==='themepark') updateEcology();
-  if(type==='bank') { game.money+=5000; showNotification("🏦 Бонус банка: +5000💰", true); }
+  game.money -= price;
+  addBuildingToCurrentDistrict(type, 1);
+  let district = getCurrentDistrict();
+  district.happiness = Math.min(100, district.happiness + bh + game.upgrades.happiness);
+  if(type === 'factory') updateEcology();
+  if(type === 'themepark') updateEcology();
+  if(type === 'bank') { game.money += 5000; showNotification("🏦 Бонус банка: +5000💰", true); }
   animateButton('btn_'+type);
   updateCrime();
   updateEcology();
@@ -444,26 +549,27 @@ function build(type) {
   updateUI();
   scheduleSave();
 }
-// Индивидуальная кнопка Max для каждого здания
+
 function buildMax(type) {
-  let info={ baseHappiness:{ wooden_small:1, wooden_medium:2, wooden_large:3, brick_small:4, brick_medium:5, brick_large:7, multistory:10, store:5, school:10, factory:-5, police:2, transport:1, tvtower:5, airport:10, bank:3, themepark:15, road:1, power_station:0 } };
-  let bh=info.baseHappiness[type]||0;
+  let info = { baseHappiness:{ wooden_small:1, wooden_medium:2, wooden_large:3, brick_small:4, brick_medium:5, brick_large:7, multistory:10, store:5, school:10, factory:-5, police:2, transport:1, tvtower:5, airport:10, bank:3, themepark:15, road:1, power_station:0 } };
+  let bh = info.baseHappiness[type] || 0;
   if(!isBuildingUnlocked(type)) { alert("Недоступно"); return; }
-  let count=0;
+  let count = 0;
   while(true) {
-    let price=getEffectivePrice(type);
-    if(game.money<price) break;
+    let price = getEffectivePrice(type);
+    if(game.money < price) break;
     if(type!=='road'&&type!=='power_station') {
-      let check=canBuildWithInfra(type, game.buildings[type]+1);
+      let check = canBuildWithInfra(type, getDistrictBuildingCount(type)+1);
       if(!check.ok) break;
     }
-    game.money-=price;
-    game.buildings[type]++;
-    game.happiness=Math.min(100, game.happiness+bh+game.upgrades.happiness);
+    game.money -= price;
+    addBuildingToCurrentDistrict(type, 1);
+    let district = getCurrentDistrict();
+    district.happiness = Math.min(100, district.happiness + bh + game.upgrades.happiness);
     count++;
-    if(type==='factory') updateEcology();
-    if(type==='themepark') updateEcology();
-    if(type==='bank') { game.money+=5000; showNotification("🏦 Бонус банка: +5000💰", true); }
+    if(type === 'factory') updateEcology();
+    if(type === 'themepark') updateEcology();
+    if(type === 'bank') { game.money += 5000; showNotification("🏦 Бонус банка: +5000💰", true); }
   }
   if(count>0) {
     animateButton('btn_'+type);
@@ -474,84 +580,145 @@ function buildMax(type) {
     updateUI();
     scheduleSave();
     showNotification(`🚀 Построено ${count} шт. ${type}`, true);
-  } else {
-    alert("Недостаточно ресурсов для постройки");
-  }
+  } else alert("Недостаточно ресурсов для постройки");
 }
 
 function buyUpgrade(type) {
-  let cost=[0,1000,2000,4000,8000,16000][game.upgrades[type]+1];
+  let cost = [0,1000,2000,4000,8000,16000][game.upgrades[type]+1];
   if(!cost) { alert("Макс. уровень"); return; }
-  if(game.money<cost) { alert(`Нужно ${cost}💰`); return; }
-  game.money-=cost;
+  if(game.money < cost) { alert(`Нужно ${cost}💰`); return; }
+  game.money -= cost;
   game.upgrades[type]++;
   showNotification(`📈 Улучшение ${type} до уровня ${game.upgrades[type]}`, true);
   updateUI();
   scheduleSave();
 }
+
 function buyInfraUpgrade(up) {
-  let cost= up==='road_capacity'?2000: up==='energy_efficiency'?3000:5000;
+  let cost = up==='road_capacity'?2000: up==='energy_efficiency'?3000:5000;
   if(game.upgrades[up]>=1) { alert("Уже куплено"); return; }
-  if(game.money<cost) { alert(`Нужно ${cost}💰`); return; }
-  game.money-=cost;
+  if(game.money < cost) { alert(`Нужно ${cost}💰`); return; }
+  game.money -= cost;
   game.upgrades[up]=1;
   showNotification(`🏗️ Инфраструктурное улучшение активировано`, true);
   updateUI();
   scheduleSave();
 }
-function updateCrime() { game.crimeRate=calcCrimeRate(); }
 
-// ========== СЛУЧАЙНЫЕ СОБЫТИЯ ==========
-function randomEvent() {
-  if(Math.random()>0.25) return;
-  let events=[
-    ()=>{ game.happiness=Math.min(100,game.happiness+15); addEventLog("🎉 Фестиваль! Счастье +15"); },
-    ()=>{ let loss=Math.floor(game.money*0.05); game.money=Math.max(0,game.money-loss); addEventLog(`🔥 Пожар! Потеряно ${loss}💰`); showNotification(`🔥 Пожар! -${loss}💰`, false); },
-    ()=>{ let gain=20000+Math.random()*30000; game.money+=gain; addEventLog(`💼 Инвестор дал ${Math.floor(gain)}💰`); showNotification(`💼 Инвестор +${Math.floor(gain)}💰`, true); },
-    ()=>{ game.crimeRate=Math.min(50,game.crimeRate+10); addEventLog("🚔 Волна преступности! +10%"); },
-    ()=>{ game.ecology=Math.max(0,game.ecology-15); addEventLog("☣️ Экологическая авария! -15% экологии"); },
-    ()=>{ game.ecology=Math.min(100,game.ecology+10); addEventLog("🌳 Посадка деревьев! +10% экологии"); }
-  ];
-  let e=events[Math.floor(Math.random()*events.length)];
-  e();
+function updateCrime() { game.crimeRate = calcCrimeRate(); }
+
+// ========== ЭТАПЫ, УРОВНИ, ПРЕСТИЖ (адаптировано) ==========
+const cityStages = [
+  { name: "🌾 Деревня",   scoreRequired: 0.0,  multiplier: 1.0, reward: 0 },
+  { name: "🏘️ Село",      scoreRequired: 0.35, multiplier: 1.2, reward: 10000 },
+  { name: "🏢 ПГТ",       scoreRequired: 0.55, multiplier: 1.5, reward: 20000 },
+  { name: "🏙️ Город",     scoreRequired: 0.75, multiplier: 2.0, reward: 40000 },
+  { name: "🌆 Мегаполис", scoreRequired: 0.90, multiplier: 3.0, reward: 80000 }
+];
+
+function calcCityScore() {
+  let popNorm = Math.min(1, totalPopulation() / 3000);
+  let happinessNorm = game.happiness / 100;
+  let safetyNorm = (100 - game.crimeRate) / 100;
+  let infraCount = getDistrictBuildingCount('police') + getDistrictBuildingCount('transport') + getDistrictBuildingCount('road')/5 + getDistrictBuildingCount('power_station')/2;
+  let infraNorm = Math.min(1, infraCount / 20);
+  let score = popNorm * 0.5 + happinessNorm * 0.2 + safetyNorm * 0.2 + infraNorm * 0.1;
+  return Math.min(0.99, Math.max(0, score));
+}
+
+function checkCityStage() {
+  let score = calcCityScore();
+  let newStage = 0;
+  for (let i=cityStages.length-1; i>=0; i--) if(score >= cityStages[i].scoreRequired) { newStage = i; break; }
+  if (score < 0.35) newStage = 0;
+  if (newStage > game.cityStage) {
+    for (let i=game.cityStage+1; i<=newStage; i++) { game.money += cityStages[i].reward; addEventLog(`🏙️ Город достиг этапа: ${cityStages[i].name} +${cityStages[i].reward}💰`); }
+    game.cityStage = newStage;
+  }
   updateUI();
 }
 
-// ========== ПРЕСТИЖ ==========
+function generateLevelRequirements() {
+  let reqs = [];
+  for(let l=2;l<=10;l++) { let need=Math.round(3*Math.pow(1.35,l-2)); need=Math.min(need,100); let rew=Math.floor(500*Math.pow(1.3,l-2)); reqs.push({level:l, woodenNeeded:need, pointsNeeded:0, reward:rew}); }
+  for(let l=11;l<=100;l++) { let need=Math.floor(50*Math.pow(1.08,l-10)); need=Math.min(need,5000); let rew=Math.floor(2000*Math.pow(1.1,l-10)); reqs.push({level:l, woodenNeeded:999999, pointsNeeded:need, reward:rew}); }
+  return reqs;
+}
+const levelRequirements = generateLevelRequirements();
+function calcDevelopmentPoints() {
+  const pts = { wooden_small:1, wooden_medium:1, wooden_large:1, brick_small:2, brick_medium:3, brick_large:4, multistory:8, store:1, school:2, factory:3, police:1, transport:2, tvtower:10, airport:15, bank:12, themepark:8 };
+  let sum = 0;
+  for (let d of game.districts) for (let t in d.buildings) sum += d.buildings[t] * (pts[t] || 0);
+  return sum;
+}
+function getMaxLevelByWooden(w) { let max=1; for(let r of levelRequirements) if(r.level<=10 && w>=r.woodenNeeded) max=r.level; return max; }
+function getMaxLevelByPoints(p) { let max=1; for(let r of levelRequirements) if(r.level>10 && p>=r.pointsNeeded) max=r.level; return max; }
+function checkLevelUp() {
+  let wood = totalWooden(), pts = calcDevelopmentPoints();
+  let newLvl = Math.max(getMaxLevelByWooden(wood), getMaxLevelByPoints(pts));
+  while(game.level < newLvl) { game.level++; let req=levelRequirements.find(r=>r.level===game.level); if(req) game.money+=req.reward; }
+  updateUI();
+}
+function getNextLevelInfo() {
+  let next = levelRequirements.find(r=>r.level===game.level+1);
+  if(!next) return {maxLevelReached:true};
+  if(next.level<=10) return {needed:next.woodenNeeded, current:totalWooden(), type:'wooden', maxLevelReached:false};
+  else return {needed:next.pointsNeeded, current:calcDevelopmentPoints(), type:'points', maxLevelReached:false};
+}
+
+// ========== СОБЫТИЯ, ПРЕСТИЖ, СУНДУК ==========
+function addEventLog(msg, showNotif=true) {
+  game.eventLog.unshift(msg+" ("+new Date().toLocaleTimeString()+")");
+  if(game.eventLog.length>10) game.eventLog.pop();
+  const el = document.getElementById("eventLog");
+  if(el) el.innerHTML = game.eventLog.map(m=>`<div>${m}</div>`).join('');
+  if(showNotif) showNotification(msg, true);
+}
+
+function randomEvent() {
+  if(Math.random()>0.25) return;
+  let events = [
+    ()=>{ for(let d of game.districts) d.happiness = Math.min(100, d.happiness+15); addEventLog("🎉 Фестиваль! Счастье +15"); },
+    ()=>{ let loss = Math.floor(game.money*0.05); game.money=Math.max(0,game.money-loss); addEventLog(`🔥 Пожар! Потеряно ${loss}💰`); showNotification(`🔥 Пожар! -${loss}💰`, false); },
+    ()=>{ let gain=20000+Math.random()*30000; game.money+=gain; addEventLog(`💼 Инвестор дал ${Math.floor(gain)}💰`); showNotification(`💼 Инвестор +${Math.floor(gain)}💰`, true); },
+    ()=>{ game.crimeRate = Math.min(50, game.crimeRate+10); addEventLog("🚔 Волна преступности! +10%"); },
+    ()=>{ game.ecology = Math.max(0, game.ecology-15); addEventLog("☣️ Экологическая авария! -15% экологии"); },
+    ()=>{ game.ecology = Math.min(100, game.ecology+10); addEventLog("🌳 Посадка деревьев! +10% экологии"); }
+  ];
+  events[Math.floor(Math.random()*events.length)]();
+  updateUI();
+}
+
 function prestige() {
-  if(game.cityStage<cityStages.length-1) { alert("Достигните Мегаполиса для престижа!"); return; }
+  if(game.cityStage < cityStages.length-1) { alert("Достигните Мегаполиса для престижа!"); return; }
   if(confirm("Переродиться? Бонус +10% к доходу навсегда. Город сбросится.")) {
     game.prestigeCount++;
-    game.prestigeBonus=1+game.prestigeCount*0.1;
-    game.money=START_MONEY*game.prestigeBonus;
-    game.happiness=60;
-    game.taxRate=0;
-    game.crimeRate=0;
-    game.ecology=100;
-    for(let t in game.buildings) game.buildings[t]=0;
-    game.level=1;
-    game.cityStage=0;
-    game.lastChestTime=0;
-    game.eventLog=[];
-    addEventLog(`⭐ ПРЕСТИЖ ${game.prestigeCount}! Бонус x${game.prestigeBonus}`, true);
+    game.prestigeBonus = 1 + game.prestigeCount*0.1;
+    game.money = START_MONEY * game.prestigeBonus;
+    game.districts = [];
+    createDistrict("Центральный");
+    game.currentDistrict = 0;
+    game.level = 1;
+    game.cityStage = 0;
+    game.lastChestTime = 0;
+    game.eventLog = [];
+    game.upgrades = { income:0, discount:0, happiness:0, road_capacity:0, energy_efficiency:0, solar_panels:0 };
+    for(let id in achievementsDef) game.achievements[id] = false;
+    updateEcology();
+    addEventLog(`⭐ ПРЕСТИЖ ${game.presticeCount}! Бонус x${game.prestigeBonus}`, true);
     updateUI();
     scheduleSave();
   }
 }
 
-// ========== СУНДУК ==========
 function openChest() {
-  let now=Date.now();
-  let cd=10*60*1000;
+  let now = Date.now();
+  let cd = 10*60*1000;
   if(now-(game.lastChestTime||0)<cd) { let left=Math.ceil((cd-(now-game.lastChestTime))/60000); alert(`Сундук через ~${left} мин`); return; }
-  game.lastChestTime=now;
-  let r=Math.random();
-  let reward=0;
-  if(r<0.5) reward=5000;
-  else if(r<0.75) reward=15000;
-  else if(r<0.9) reward=50000;
-  else reward=100000;
-  game.money+=reward;
+  game.lastChestTime = now;
+  let r = Math.random();
+  let reward = r<0.5 ? 5000 : r<0.75 ? 15000 : r<0.9 ? 50000 : 100000;
+  game.money += reward;
   addEventLog(`🎁 СУНДУК: +${reward}💰`, true);
   updateUI();
   scheduleSave();
@@ -563,37 +730,34 @@ function updateChestTimer() {
   document.getElementById("chestTimer").innerText=left<=0?"Готово!":`Доступен через ${min}:${sec.toString().padStart(2,'0')}`;
 }
 
-// ========== ЕЖЕДНЕВНАЯ НАГРАДА ==========
 function claimDailyReward() {
-  let now=Date.now();
-  let oneDay=24*60*60*1000;
-  if(now-lastDailyClaim>=oneDay) {
-    game.money+=DAILY_REWARD;
-    lastDailyClaim=now;
+  let now = Date.now();
+  let oneDay = 24*60*60*1000;
+  if(now - lastDailyClaim >= oneDay) {
+    game.money += DAILY_REWARD;
+    lastDailyClaim = now;
     addEventLog(`📅 Ежедневная награда: +${DAILY_REWARD}💰`, true);
     updateUI();
     scheduleSave();
   } else {
-    let left=Math.ceil((oneDay-(now-lastDailyClaim))/3600000);
+    let left = Math.ceil((oneDay-(now-lastDailyClaim))/3600000);
     alert(`Уже получено. Следующая через ~${left} ч.`);
   }
 }
 
-// ========== МИГРАЦИЯ ==========
 function applyMigration() {
-  let attraction= (game.happiness-50)/50 - game.crimeRate/50 + (game.ecology-50)/50;
-  let unemp=1-getUnemploymentEffect();
-  attraction-=unemp*0.5;
-  if(attraction>0.1) {
-    let migrants=Math.min(500, Math.floor(calcPopulation()*0.02*attraction));
+  let attraction = (game.happiness-50)/50 - game.crimeRate/50 + (game.ecology-50)/50;
+  let unemp = 1 - getUnemploymentEffect();
+  attraction -= unemp*0.5;
+  if(attraction > 0.1) {
+    let migrants = Math.min(500, Math.floor(totalPopulation()*0.02*attraction));
     if(migrants>0) addEventLog(`➕ Прибыло ${migrants} жителей`, false);
-  } else if(attraction<-0.1) {
-    let emigrants=Math.min(200, Math.floor(calcPopulation()*0.01*(-attraction)));
+  } else if(attraction < -0.1) {
+    let emigrants = Math.min(200, Math.floor(totalPopulation()*0.01*(-attraction)));
     if(emigrants>0) addEventLog(`➖ Уехало ${emigrants} жителей`, false);
   }
 }
 
-// ========== ДОСТИЖЕНИЯ ==========
 function checkAchievements() {
   for(let id in achievementsDef) {
     if(!game.achievements[id] && achievementsDef[id].cond()) {
@@ -605,26 +769,52 @@ function checkAchievements() {
   updateUI();
 }
 
+function updateDistrictUI() {
+  const container = document.getElementById("districtsList");
+  if(!container) return;
+  if(game.districts.length === 0) {
+    container.innerHTML = "<div>Нет районов. Создайте первый!</div>";
+    return;
+  }
+  let html = "";
+  for(let i=0; i<game.districts.length; i++) {
+    const d = game.districts[i];
+    const pop = calcDistrictPopulation(d);
+    const totalBuild = Object.values(d.buildings).reduce((a,b)=>a+b,0);
+    const activeClass = (i === game.currentDistrict) ? "district-active" : "";
+    html += `<div class="district-card ${activeClass}">
+      <div><strong>${d.name}</strong> ${i===game.currentDistrict ? "✅ активный" : ""}</div>
+      <div>👥 ${pop} жит. | 😊 ${Math.floor(d.happiness)} | 🌿 ${Math.floor(d.ecology)}% | 🏗️ ${totalBuild} зд.</div>
+      <div class="district-buttons">
+        <button onclick="selectDistrict(${i})">🏙️ Управлять</button>
+      </div>
+    </div>`;
+  }
+  container.innerHTML = html;
+}
+
 // ========== UI ОБНОВЛЕНИЕ ==========
 function updateUI() {
-  document.getElementById("money").innerText=Math.floor(game.money);
-  document.getElementById("people").innerText=calcPopulation();
-  document.getElementById("jobs").innerText=getJobCapacity();
-  document.getElementById("jobCapacity").innerText=getJobCapacity();
-  document.getElementById("happy").innerText=Math.floor(game.happiness);
-  document.getElementById("happinessMultDisplay").innerText=getHappinessMultiplier().toFixed(2);
-  document.getElementById("crimeRate").innerText=game.crimeRate.toFixed(1);
-  document.getElementById("crimePenaltyDisplay").innerText=game.crimeRate.toFixed(1);
-  document.getElementById("ecology").innerText=Math.floor(game.ecology);
-  let ecoPenalty=1-getEcologyPenalty();
-  document.getElementById("ecologyPenaltyDisplay").innerText=(ecoPenalty*100).toFixed(0);
-  document.getElementById("taxRate").innerText=game.taxRate;
-  document.getElementById("taxBonusDisplay").innerText=game.taxRate;
-  document.getElementById("incomePerTick").innerText=calcIncomePerTick().toFixed(1);
-  document.getElementById("devPoints").innerText=calcDevelopmentPoints();
-  document.getElementById("prestigeBonus").innerText=game.prestigeBonus.toFixed(2);
-  document.getElementById("stageMultiplierDisplay").innerText=`(x${cityStages[game.cityStage].multiplier.toFixed(1)} доход)`;
-
+  // Заголовок города
+  document.getElementById("cityTitle").innerHTML = `🏘️ ${game.cityName || "Безымянный город"}`;
+  
+  document.getElementById("money").innerText = Math.floor(game.money);
+  document.getElementById("people").innerText = totalPopulation();
+  document.getElementById("jobs").innerText = totalJobs();
+  document.getElementById("jobCapacity").innerText = totalJobs();
+  document.getElementById("happy").innerText = Math.floor(game.happiness);
+  document.getElementById("happinessMultDisplay").innerText = getHappinessMultiplier().toFixed(2);
+  document.getElementById("crimeRate").innerText = game.crimeRate.toFixed(1);
+  document.getElementById("crimePenaltyDisplay").innerText = game.crimeRate.toFixed(1);
+  document.getElementById("ecology").innerText = Math.floor(game.ecology);
+  let ecoPenalty = 1 - getEcologyPenalty();
+  document.getElementById("ecologyPenaltyDisplay").innerText = (ecoPenalty*100).toFixed(0);
+  document.getElementById("taxRate").innerText = game.taxRate;
+  document.getElementById("taxBonusDisplay").innerText = game.taxRate;
+  document.getElementById("incomePerTick").innerText = calcIncomePerTick().toFixed(1);
+  document.getElementById("devPoints").innerText = calcDevelopmentPoints();
+  document.getElementById("prestigeBonus").innerText = game.prestigeBonus.toFixed(2);
+  document.getElementById("stageMultiplierDisplay").innerText = `(x${cityStages[game.cityStage].multiplier.toFixed(1)} доход)`;
   let roadCap=getRoadCapacity(), roadUsed=getUsedRoadCapacity();
   document.getElementById("roadUsage").innerText=roadUsed;
   document.getElementById("roadCapacity").innerText=roadCap;
@@ -635,89 +825,102 @@ function updateUI() {
   document.getElementById("infraEfficiency").innerText=eff;
 
   for(let t in { wooden_small:1, wooden_medium:1, wooden_large:1, brick_small:1, brick_medium:1, brick_large:1, multistory:1, store:1, road:1, power_station:1, school:1, factory:1, police:1, transport:1, tvtower:1, airport:1, bank:1, themepark:1 }) {
-    let price=getEffectivePrice(t);
-    let span=document.getElementById("price_"+t);
-    if(span) span.innerText=price;
-    let btn=document.getElementById("btn_"+t);
-    let cntSpan=document.getElementById("count_"+t);
+    let price = getEffectivePrice(t);
+    let span = document.getElementById("price_"+t);
+    if(span) span.innerText = price;
+    let btn = document.getElementById("btn_"+t);
+    let cntSpan = document.getElementById("count_"+t);
     if(btn) {
-      let unlocked=isBuildingUnlocked(t);
-      let canAff=game.money>=price;
+      let unlocked = isBuildingUnlocked(t);
+      let canAff = game.money >= price;
       if(t!=='road'&&t!=='power_station') {
-        let inf=canBuildWithInfra(t, game.buildings[t]+1);
-        btn.disabled=!(unlocked&&canAff&&inf.ok);
-      } else btn.disabled=!(unlocked&&canAff);
+        let inf = canBuildWithInfra(t, getDistrictBuildingCount(t)+1);
+        btn.disabled = !(unlocked && canAff && inf.ok);
+      } else btn.disabled = !(unlocked && canAff);
     }
-    if(cntSpan) cntSpan.innerText=`(построено: ${game.buildings[t]})`;
+    if(cntSpan) cntSpan.innerText = `(построено: ${getDistrictBuildingCount(t)})`;
   }
 
-  document.getElementById("incomeMultiplierDisplay").innerText=getIncomeMultiplier().toFixed(2);
-  document.getElementById("incomeBonusLevel").innerText=game.upgrades.income;
+  document.getElementById("incomeMultiplierDisplay").innerText = getIncomeMultiplier().toFixed(2);
+  document.getElementById("incomeBonusLevel").innerText = game.upgrades.income;
   let incCost=[1000,2000,4000,8000,16000][game.upgrades.income];
-  document.getElementById("incomeUpgradePrice").innerText=incCost||"MAX";
-  document.getElementById("btn_incomeUpgrade").disabled=!incCost||game.money<incCost;
-  document.getElementById("discountPercent").innerText=game.upgrades.discount*5;
+  document.getElementById("incomeUpgradePrice").innerText = incCost||"MAX";
+  document.getElementById("btn_incomeUpgrade").disabled = !incCost||game.money<incCost;
+  document.getElementById("discountPercent").innerText = game.upgrades.discount*5;
   let disCost=[2000,5000,10000][game.upgrades.discount];
-  document.getElementById("discountUpgradePrice").innerText=disCost||"MAX";
-  document.getElementById("btn_discountUpgrade").disabled=!disCost||game.money<disCost;
+  document.getElementById("discountUpgradePrice").innerText = disCost||"MAX";
+  document.getElementById("btn_discountUpgrade").disabled = !disCost||game.money<disCost;
   let hapCost=[1500,3000,6000][game.upgrades.happiness];
-  document.getElementById("happinessUpgradePrice").innerText=hapCost||"MAX";
-  document.getElementById("happinessBonusLevel").innerText=game.upgrades.happiness;
-  document.getElementById("btn_happinessUpgrade").disabled=!hapCost||game.money<hapCost;
+  document.getElementById("happinessUpgradePrice").innerText = hapCost||"MAX";
+  document.getElementById("happinessBonusLevel").innerText = game.upgrades.happiness;
+  document.getElementById("btn_happinessUpgrade").disabled = !hapCost||game.money<hapCost;
+  document.getElementById("roadUpgradeLevel").innerText = game.upgrades.road_capacity;
+  document.getElementById("btn_roadUpgrade").disabled = game.upgrades.road_capacity>=1||game.money<2000;
+  document.getElementById("energyEfficiencyLevel").innerText = game.upgrades.energy_efficiency;
+  document.getElementById("btn_energyUpgrade").disabled = game.upgrades.energy_efficiency>=1||game.money<3000;
+  document.getElementById("solarPanelsLevel").innerText = game.upgrades.solar_panels;
+  document.getElementById("btn_solarUpgrade").disabled = game.upgrades.solar_panels>=1||game.money<5000;
 
-  document.getElementById("roadUpgradeLevel").innerText=game.upgrades.road_capacity;
-  document.getElementById("btn_roadUpgrade").disabled=game.upgrades.road_capacity>=1||game.money<2000;
-  document.getElementById("energyEfficiencyLevel").innerText=game.upgrades.energy_efficiency;
-  document.getElementById("btn_energyUpgrade").disabled=game.upgrades.energy_efficiency>=1||game.money<3000;
-  document.getElementById("solarPanelsLevel").innerText=game.upgrades.solar_panels;
-  document.getElementById("btn_solarUpgrade").disabled=game.upgrades.solar_panels>=1||game.money<5000;
-
-  let lvlInfo=getNextLevelInfo();
+  let lvlInfo = getNextLevelInfo();
   if(lvlInfo.maxLevelReached) { document.getElementById("levelProgressText").innerHTML="(MAX)"; document.getElementById("levelProgressFill").style.width="100%"; }
-  else { let pct=(lvlInfo.current/lvlInfo.needed)*100; document.getElementById("levelProgressText").innerHTML=`(${lvlInfo.current}/${lvlInfo.needed} ${lvlInfo.type==='wooden'?'домов':'очков'})`; document.getElementById("levelProgressFill").style.width=pct+"%"; }
-  document.getElementById("level").innerText=game.level;
+  else { let pct = (lvlInfo.current/lvlInfo.needed)*100; document.getElementById("levelProgressText").innerHTML=`(${lvlInfo.current}/${lvlInfo.needed} ${lvlInfo.type==='wooden'?'домов':'очков'})`; document.getElementById("levelProgressFill").style.width=pct+"%"; }
+  document.getElementById("level").innerText = game.level;
 
-  let score=calcCityScore();
-  document.getElementById("cityScoreValue").innerText=score.toFixed(2);
-  let next=cityStages[game.cityStage+1];
-  if(next) { document.getElementById("cityScoreNext").innerText=next.scoreRequired.toFixed(2); let pct=(score/next.scoreRequired)*100; document.getElementById("stageScoreProgress").style.width=pct+"%"; document.getElementById("stageRequirements").innerHTML=`⭐ Нужно City Score: ${next.scoreRequired.toFixed(2)}`; }
+  let score = calcCityScore();
+  document.getElementById("cityScoreValue").innerText = score.toFixed(2);
+  let next = cityStages[game.cityStage+1];
+  if(next) { document.getElementById("cityScoreNext").innerText = next.scoreRequired.toFixed(2); let pct = (score/next.scoreRequired)*100; document.getElementById("stageScoreProgress").style.width=pct+"%"; document.getElementById("stageRequirements").innerHTML = `⭐ Нужно City Score: ${next.scoreRequired.toFixed(2)}`; }
   else { document.getElementById("cityScoreNext").innerText="MAX"; document.getElementById("stageScoreProgress").style.width="100%"; document.getElementById("stageRequirements").innerHTML="✨ Максимальный этап!"; }
-  document.getElementById("cityStageName").innerText=cityStages[game.cityStage].name;
+  document.getElementById("cityStageName").innerText = cityStages[game.cityStage].name;
 
-  let achHtml="";
-  for(let id in achievementsDef) achHtml+=`<div class="achievement-item">${game.achievements[id]?"✅":"🔒"} ${achievementsDef[id].name} (+${achievementsDef[id].reward}💰)</div>`;
-  document.getElementById("achievementsList").innerHTML=achHtml;
-  let dailyDiv=document.getElementById("dailyRewardDisplay");
-  let now=Date.now();
-  let oneDay=24*60*60*1000;
-  let remaining=oneDay-(now-lastDailyClaim);
-  if(remaining<=0) dailyDiv.innerText="🎁 Готово к получению!";
-  else dailyDiv.innerText=`До следующей награды ~${Math.ceil(remaining/3600000)} ч.`;
+  let achHtml = "";
+  for(let id in achievementsDef) achHtml += `<div class="achievement-item">${game.achievements[id]?"✅":"🔒"} ${achievementsDef[id].name} (+${achievementsDef[id].reward}💰)</div>`;
+  document.getElementById("achievementsList").innerHTML = achHtml;
+  let now = Date.now();
+  let oneDay = 24*60*60*1000;
+  let remaining = oneDay - (now - lastDailyClaim);
+  document.getElementById("dailyRewardDisplay").innerHTML = remaining<=0 ? "🎁 Готово к получению!" : `До следующей награды ~${Math.ceil(remaining/3600000)} ч.`;
   updateChestTimer();
+  updateDistrictUI();
 }
 
-// ========== СОХРАНЕНИЕ ==========
+// ========== СОХРАНЕНИЕ И ЗАГРУЗКА ==========
 function saveGame() {
-  game.lastSaveTime=Date.now();
-  let toSave={ money:game.money, happiness:game.happiness, taxRate:game.taxRate, crimeRate:game.crimeRate, ecology:game.ecology, prestigeBonus:game.prestigeBonus, prestigeCount:game.prestigeCount, buildings:game.buildings, upgrades:game.upgrades, achievements:game.achievements, level:game.level, cityStage:game.cityStage, lastSaveTime:game.lastSaveTime, lastChestTime:game.lastChestTime, eventLog:game.eventLog, migrationBonus:game.migrationBonus };
-  localStorage.setItem(STORAGE_KEY,JSON.stringify(toSave));
+  game.lastSaveTime = Date.now();
+  let toSave = {
+    money: game.money, happiness: game.happiness, taxRate: game.taxRate, crimeRate: game.crimeRate,
+    ecology: game.ecology, prestigeBonus: game.prestigeBonus, prestigeCount: game.prestigeCount,
+    cityName: game.cityName, districts: game.districts, currentDistrict: game.currentDistrict,
+    upgrades: game.upgrades, achievements: game.achievements, level: game.level, cityStage: game.cityStage,
+    lastSaveTime: game.lastSaveTime, lastChestTime: game.lastChestTime, eventLog: game.eventLog, migrationBonus: game.migrationBonus
+  };
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(toSave));
 }
 let saveTimeout;
-function scheduleSave() { clearTimeout(saveTimeout); saveTimeout=setTimeout(saveGame,1000); }
+function scheduleSave() { clearTimeout(saveTimeout); saveTimeout = setTimeout(saveGame, 1000); }
 function loadGame() {
-  let saved=localStorage.getItem(STORAGE_KEY);
+  let saved = localStorage.getItem(STORAGE_KEY);
   if(saved) {
-    try{
-      let d=JSON.parse(saved);
-      for(let k in d) if(k!=='buildings'&&k!=='upgrades'&&k!=='achievements') game[k]=d[k];
-      if(d.buildings) Object.assign(game.buildings,d.buildings);
-      if(d.upgrades) Object.assign(game.upgrades,d.upgrades);
-      if(d.achievements) game.achievements=d.achievements;
-    }catch(e){}
+    try {
+      let d = JSON.parse(saved);
+      for(let k in d) if(k!=='districts' && k!=='upgrades' && k!=='achievements') game[k] = d[k];
+      if(d.districts) game.districts = d.districts;
+      if(d.upgrades) Object.assign(game.upgrades, d.upgrades);
+      if(d.achievements) game.achievements = d.achievements;
+    } catch(e) {}
   }
-  if(!game.lastChestTime) game.lastChestTime=0;
-  if(!game.eventLog) game.eventLog=[];
-  if(!game.migrationBonus) game.migrationBonus=0;
+  if(!game.cityName) {
+    let name = prompt("Название вашего города:", "Новоград");
+    game.cityName = name ? name : "Безымянный город";
+  }
+  if(!game.districts || game.districts.length === 0) {
+    createDistrict("Центральный");
+    game.currentDistrict = 0;
+  }
+  if(!game.lastChestTime) game.lastChestTime = 0;
+  if(!game.eventLog) game.eventLog = [];
+  if(!game.migrationBonus) game.migrationBonus = 0;
+  if(!game.upgrades) game.upgrades = { income:0, discount:0, happiness:0, road_capacity:0, energy_efficiency:0, solar_panels:0 };
   processOfflineIncome();
   updateCrime();
   updateEcology();
@@ -727,42 +930,45 @@ function loadGame() {
   scheduleSave();
 }
 function processOfflineIncome() {
-  let now=Date.now();
-  let last=game.lastSaveTime;
+  let now = Date.now();
+  let last = game.lastSaveTime;
   if(!last||now-last<5000) return;
-  let sec=(now-last)/1000;
-  let ticks=Math.min(Math.floor(sec/3),7*24*3600/3);
+  let sec = (now-last)/1000;
+  let ticks = Math.min(Math.floor(sec/3), 7*24*3600/3);
   if(ticks<=0) return;
-  let inc=calcIncomePerTick();
-  let offlineMoney=inc*ticks;
-  game.money+=offlineMoney;
-  if(offlineMoney>0) showNotification(`💤 Офлайн-доход: +${Math.floor(offlineMoney)}💰`, true);
+  let inc = calcIncomePerTick();
+  let offline = inc * ticks;
+  game.money += offline;
+  if(offline>0) showNotification(`💤 Офлайн-доход: +${Math.floor(offline)}💰`, true);
 }
 function resetGame() {
   if(confirm("Сбросить весь прогресс?")) { localStorage.removeItem(STORAGE_KEY); location.reload(); }
 }
 function setTaxRate(rate) { if(rate>=0&&rate<=30&&rate%5===0) { game.taxRate=rate; updateUI(); scheduleSave(); } }
 function initTaxButtons() {
-  let cont=document.getElementById("taxButtons");
-  cont.innerHTML="";
+  let cont = document.getElementById("taxButtons");
+  cont.innerHTML = "";
   for(let t of [0,5,10,15,20,25,30]) {
-    let btn=document.createElement("button");
-    btn.innerText=t+"%";
-    btn.onclick=()=>setTaxRate(t);
-    if(game.taxRate===t) btn.style.background="#ff9800";
+    let btn = document.createElement("button");
+    btn.innerText = t+"%";
+    btn.onclick = () => setTaxRate(t);
+    if(game.taxRate === t) btn.style.background = "#ff9800";
     cont.appendChild(btn);
   }
 }
 // ========== ТАЙМЕРЫ ==========
 setInterval(()=>{
-  let inc=calcIncomePerTick();
-  if(calcPopulation()>0||game.buildings.store>0) {
-    game.money+=inc;
+  let inc = calcIncomePerTick();
+  if(totalPopulation()>0 || totalStores()>0) {
+    game.money += inc;
     updateUI();
     scheduleSave();
   }
   adjustHappinessTowardsTarget();
-  applyInfrastructurePenalties();
+  let penalty = 0;
+  if(getUsedRoadCapacity() > getRoadCapacity()) penalty += 2;
+  if(getPowerUsage() > getPowerSupply()) penalty += 3;
+  if(penalty>0) for(let d of game.districts) d.happiness = Math.max(0, d.happiness - penalty);
   updateCrime();
   updateEcology();
   checkCityStage();
@@ -770,27 +976,19 @@ setInterval(()=>{
   applyMigration();
   randomEvent();
   updateUI();
-},3000);
-function adjustHappinessTowardsTarget() {
-  let target=70-game.taxRate*1.5 + (game.buildings.store||0)*2 + (game.buildings.school||0)*1 + (game.buildings.police||0)*0.5 + (game.buildings.transport||0)*0.5;
-  target=Math.min(100,Math.max(10,target));
-  game.happiness+=(target-game.happiness)*0.05;
-  game.happiness=Math.min(100,Math.max(0,game.happiness));
-}
-function applyInfrastructurePenalties() {
-  let penalty=0;
-  if(getUsedRoadCapacity()>getRoadCapacity()) penalty+=2;
-  if(getPowerUsage()>getPowerSupply()) penalty+=3;
-  if(penalty>0) game.happiness=Math.max(0,game.happiness-penalty);
-}
-window.build=build;
-window.buildMax=buildMax;
-window.buyUpgrade=buyUpgrade;
-window.buyInfraUpgrade=buyInfraUpgrade;
-window.openChest=openChest;
-window.claimDailyReward=claimDailyReward;
-window.prestige=prestige;
-window.resetGame=resetGame;
+}, 3000);
+
+window.build = build;
+window.buildMax = buildMax;
+window.buyUpgrade = buyUpgrade;
+window.buyInfraUpgrade = buyInfraUpgrade;
+window.openChest = openChest;
+window.claimDailyReward = claimDailyReward;
+window.prestige = prestige;
+window.resetGame = resetGame;
+window.createDistrict = createDistrict;
+window.selectDistrict = selectDistrict;
+
 loadGame();
 initTaxButtons();
 </script>

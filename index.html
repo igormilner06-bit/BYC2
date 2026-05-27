@@ -90,7 +90,6 @@
 <div class="container">
   <div id="notificationArea" class="notification-area"></div>
 
-  <!-- Заголовок с названием города -->
   <h2 id="cityTitle">🏘️ Загрузка...</h2>
 
   <div class="card">
@@ -129,7 +128,6 @@
     <div id="chestTimer" style="font-size:12px; text-align:center;"></div>
   </div>
 
-  <!-- Блок районов -->
   <div class="card" id="districtsPanel">
     <div style="display:flex; justify-content:space-between; align-items:center;">
       <div style="font-size:1.1em; font-weight:bold;">🏘️ Районы города</div>
@@ -138,7 +136,6 @@
     <div id="districtsList"></div>
   </div>
 
-  <!-- Редкие здания (с индивидуальными Max) -->
   <div class="building-group rare-building">
     <h3>🌟 Редкие уникальные здания</h3>
     <div class="building-row"><button id="btn_tvtower" class="main-btn" onclick="build('tvtower')">🗼 Телебашня <span class="building-price" id="price_tvtower">100000</span>💰 +10% доход, +5 счастья <span class="building-count" id="count_tvtower">0</span></button><button class="max-btn" onclick="buildMax('tvtower')">Max</button></div>
@@ -147,7 +144,6 @@
     <div class="building-row"><button id="btn_themepark" class="main-btn" onclick="build('themepark')">🎡 Парк развлечений <span class="building-price" id="price_themepark">80000</span>💰 +15 счастья, +5% экологии <span class="building-count" id="count_themepark">0</span></button><button class="max-btn" onclick="buildMax('themepark')">Max</button></div>
   </div>
 
-  <!-- Деревянные дома -->
   <div class="building-group">
     <h3>🪵 Деревянные дома</h3>
     <div class="building-row"><button id="btn_wooden_small" class="main-btn" onclick="build('wooden_small')">🏠 Деревянный малый <span class="building-price" id="price_wooden_small">250</span>💰 +5 жит. <span class="building-count" id="count_wooden_small">0</span></button><button class="max-btn" onclick="buildMax('wooden_small')">Max</button></div>
@@ -155,7 +151,6 @@
     <div class="building-row"><button id="btn_wooden_large" class="main-btn" onclick="build('wooden_large')">🏠 Деревянный большой <span class="building-price" id="price_wooden_large">1000</span>💰 +25 жит. <span class="building-count" id="count_wooden_large">0</span></button><button class="max-btn" onclick="buildMax('wooden_large')">Max</button></div>
   </div>
 
-  <!-- Кирпичные дома -->
   <div class="building-group">
     <h3>🧱 Кирпичные дома</h3>
     <div class="building-row"><button id="btn_brick_small" class="main-btn" onclick="build('brick_small')">🧱 Кирпичный малый <span class="building-price" id="price_brick_small">4000</span>💰 +40 жит. <span class="building-count" id="count_brick_small">0</span></button><button class="max-btn" onclick="buildMax('brick_small')">Max</button></div>
@@ -163,13 +158,11 @@
     <div class="building-row"><button id="btn_brick_large" class="main-btn" onclick="build('brick_large')">🏢 Кирпичный большой <span class="building-price" id="price_brick_large">12000</span>💰 +140 жит. <span class="building-count" id="count_brick_large">0</span></button><button class="max-btn" onclick="buildMax('brick_large')">Max</button></div>
   </div>
 
-  <!-- Многоэтажные -->
   <div class="building-group">
     <h3>🏙️ Многоэтажные</h3>
     <div class="building-row"><button id="btn_multistory" class="main-btn" onclick="build('multistory')">🏙️ Многоэтажный дом <span class="building-price" id="price_multistory">20000</span>💰 +350 жит. <span class="building-count" id="count_multistory">0</span></button><button class="max-btn" onclick="buildMax('multistory')">Max</button></div>
   </div>
 
-  <!-- Инфраструктура -->
   <div class="building-group">
     <h3>🛒 Инфраструктура и сервисы</h3>
     <div class="building-row"><button id="btn_store" class="main-btn" onclick="build('store')">🛍️ Магазин <span class="building-price" id="price_store">3000</span>💰 +5 счастья <span class="building-count" id="count_store">0</span></button><button class="max-btn" onclick="buildMax('store')">Max</button></div>
@@ -181,7 +174,6 @@
     <div class="building-row"><button id="btn_transport" class="main-btn" onclick="build('transport')">🚌 Транспорт <span class="building-price" id="price_transport">2500</span>💰 +5% доход <span class="building-count" id="count_transport">0</span></button><button class="max-btn" onclick="buildMax('transport')">Max</button></div>
   </div>
 
-  <!-- Бонусы и награды -->
   <div class="card">
     <div style="font-size:1.2em; font-weight:bold">🎁 Бонусы и награды</div>
     <div class="two-columns">
@@ -225,7 +217,6 @@ if (tg) { tg.ready(); tg.expand(); }
 const STORAGE_KEY = "cityGameDistricts_" + (tg?.initDataUnsafe?.user?.id || "guest");
 const START_MONEY = 10000;
 
-// ========== АНИМАЦИЯ ==========
 function showNotification(message, isPositive = true) {
   const area = document.getElementById("notificationArea");
   const notif = document.createElement("div");
@@ -236,7 +227,7 @@ function showNotification(message, isPositive = true) {
   setTimeout(() => { if(notif.parentNode) notif.remove(); }, 2000);
 }
 
-// ========== ДОСТИЖЕНИЯ ==========
+// Достижения
 const achievementsDef = {
   first_million: { name:"💰 Первый миллион", reward:50000, cond:()=>game.money>=1000000 },
   builder_100: { name:"🏗️ 100 зданий", reward:20000, cond:()=>totalBuildings()>=100 },
@@ -246,7 +237,6 @@ const achievementsDef = {
   prestige_1: { name:"⭐ Первый престиж", reward:100000, cond:()=>game.prestigeCount>=1 }
 };
 
-// ========== ИГРОВОЙ ОБЪЕКТ ==========
 let game = {
   money: START_MONEY,
   happiness: 60,
@@ -258,20 +248,18 @@ let game = {
   cityName: "",
   districts: [],
   currentDistrict: 0,
-  // Старые поля для совместимости (не используются напрямую, но сохраняются)
-  buildings: {},
   upgrades: { income:0, discount:0, happiness:0, road_capacity:0, energy_efficiency:0, solar_panels:0 },
   achievements: {},
   level:1, cityStage:0, lastSaveTime:Date.now(), lastChestTime:0,
-  eventLog: [], migrationBonus:0
+  eventLog: [], migrationBonus: 0,
+  lastInvestorTime: 0  // время последнего инвестора
 };
-
 for(let id in achievementsDef) if(game.achievements[id]===undefined) game.achievements[id]=false;
 
 let lastDailyClaim = 0;
 const DAILY_REWARD = 25000;
 
-// ========== ФУНКЦИИ РАБОТЫ С РАЙОНАМИ ==========
+// ========== ФУНКЦИИ РАЙОНОВ ==========
 function createDistrict(forceName = null) {
   let name = forceName;
   if (!name) name = prompt("Введите название нового района:", "Новый район");
@@ -298,7 +286,7 @@ function selectDistrict(index) {
   if (index >= 0 && index < game.districts.length) {
     game.currentDistrict = index;
     updateDistrictUI();
-    updateUI(); // чтобы обновить интерфейс зданий и статистики
+    updateUI();
     showNotification(`📍 Выбран район: ${game.districts[index].name}`, true);
   }
 }
@@ -388,7 +376,7 @@ function addBuildingToCurrentDistrict(type, count = 1) {
   district.buildings[type] = (district.buildings[type] || 0) + count;
 }
 
-// ========== ОСТАЛЬНАЯ ЛОГИКА (адаптированная под районы) ==========
+// ========== ОБЩИЕ РАСЧЁТЫ ==========
 function updateEcology() {
   let pollution = 0;
   for (let d of game.districts) {
@@ -410,7 +398,6 @@ function getAverageHappiness() {
 function adjustHappinessTowardsTarget() {
   let target = 70 - game.taxRate*1.5 + (totalStores())*2 + (getDistrictBuildingCount('school'))*1 + (getDistrictBuildingCount('police'))*0.5 + (getDistrictBuildingCount('transport'))*0.5;
   target = Math.min(100, Math.max(10, target));
-  // плавно меняем счастье каждого района
   for (let d of game.districts) {
     d.happiness += (target - d.happiness) * 0.05;
     d.happiness = Math.min(100, Math.max(0, d.happiness));
@@ -607,7 +594,7 @@ function buyInfraUpgrade(up) {
 
 function updateCrime() { game.crimeRate = calcCrimeRate(); }
 
-// ========== ЭТАПЫ, УРОВНИ, ПРЕСТИЖ (адаптировано) ==========
+// ========== ЭТАПЫ, УРОВНИ ==========
 const cityStages = [
   { name: "🌾 Деревня",   scoreRequired: 0.0,  multiplier: 1.0, reward: 0 },
   { name: "🏘️ Село",      scoreRequired: 0.35, multiplier: 1.2, reward: 10000 },
@@ -666,7 +653,7 @@ function getNextLevelInfo() {
   else return {needed:next.pointsNeeded, current:calcDevelopmentPoints(), type:'points', maxLevelReached:false};
 }
 
-// ========== СОБЫТИЯ, ПРЕСТИЖ, СУНДУК ==========
+// ========== СОБЫТИЯ (улучшенная логика, инвестор убран из случайных) ==========
 function addEventLog(msg, showNotif=true) {
   game.eventLog.unshift(msg+" ("+new Date().toLocaleTimeString()+")");
   if(game.eventLog.length>10) game.eventLog.pop();
@@ -675,20 +662,165 @@ function addEventLog(msg, showNotif=true) {
   if(showNotif) showNotification(msg, true);
 }
 
+// Новая функция: проверка и вызов инвестора как награды за заслуги
+function tryInvokeInvestor() {
+  const now = Date.now();
+  const cooldown = 30 * 60 * 1000; // не чаще 1 раза в 30 минут
+  if (now - game.lastInvestorTime < cooldown) return false;
+  
+  // Условия для привлечения инвестора:
+  const conditions = {
+    population: totalPopulation() >= 500,
+    cityScore: calcCityScore() >= 0.5,
+    cityStageLevel: game.cityStage >= 2, // ПГТ или выше
+    crime: game.crimeRate < 15,
+    ecology: game.ecology > 50,
+    // Дополнительно: улучшение бизнес-центра до 3 уровня (можно отдельно, но здесь объединим ИЛИ)
+    businessCenter: game.upgrades.income >= 3
+  };
+  
+  // Если выполнено хотя бы 3 условия ИЛИ бизнес-центр 3 уровня
+  let goodConditions = Object.values(conditions).filter(v => v === true).length;
+  if (goodConditions >= 3 || conditions.businessCenter) {
+    // Рассчитываем сумму инвестиций: зависит от уровня города, дохода, населения
+    let baseInvestment = 30000 + Math.random() * 50000;
+    let multiplier = 1 + (game.cityStage * 0.3) + (game.upgrades.income * 0.2);
+    let investment = Math.floor(baseInvestment * multiplier);
+    game.money += investment;
+    game.lastInvestorTime = now;
+    addEventLog(`💼 Инвестор вложил ${investment}💰 в развитие города! (выполнено условий: ${goodConditions})`, true);
+    showNotification(`💼 Инвестор +${investment}💰`, true);
+    return true;
+  }
+  return false;
+}
+
 function randomEvent() {
-  if(Math.random()>0.25) return;
-  let events = [
-    ()=>{ for(let d of game.districts) d.happiness = Math.min(100, d.happiness+15); addEventLog("🎉 Фестиваль! Счастье +15"); },
-    ()=>{ let loss = Math.floor(game.money*0.05); game.money=Math.max(0,game.money-loss); addEventLog(`🔥 Пожар! Потеряно ${loss}💰`); showNotification(`🔥 Пожар! -${loss}💰`, false); },
-    ()=>{ let gain=20000+Math.random()*30000; game.money+=gain; addEventLog(`💼 Инвестор дал ${Math.floor(gain)}💰`); showNotification(`💼 Инвестор +${Math.floor(gain)}💰`, true); },
-    ()=>{ game.crimeRate = Math.min(50, game.crimeRate+10); addEventLog("🚔 Волна преступности! +10%"); },
-    ()=>{ game.ecology = Math.max(0, game.ecology-15); addEventLog("☣️ Экологическая авария! -15% экологии"); },
-    ()=>{ game.ecology = Math.min(100, game.ecology+10); addEventLog("🌳 Посадка деревьев! +10% экологии"); }
-  ];
-  events[Math.floor(Math.random()*events.length)]();
+  // Вероятность обычных событий 12% каждые 3 секунды
+  if (Math.random() > 0.12) return;
+  
+  const totalPop = totalPopulation();
+  const totalHousesCount = totalHouses();
+  const factories = getDistrictBuildingCount('factory');
+  const powerStations = getDistrictBuildingCount('power_station');
+  const crime = game.crimeRate;
+  const happiness = game.happiness;
+  
+  let possibleEvents = [];
+  
+  // Пожар — только если есть дома
+  if (totalHousesCount > 0) {
+    possibleEvents.push({
+      name: "🔥 Пожар",
+      effect: () => {
+        let loss = Math.floor(game.money * (0.01 + Math.random() * 0.04));
+        loss = Math.min(loss, game.money * 0.1);
+        game.money = Math.max(0, game.money - loss);
+        addEventLog(`🔥 Пожар в жилом районе! Потеряно ${Math.floor(loss)}💰`, false);
+        showNotification(`🔥 Пожар! -${Math.floor(loss)}💰`, false);
+      }
+    });
+  }
+  
+  // Волна преступности — если преступность уже > 3%
+  if (crime > 3) {
+    possibleEvents.push({
+      name: "🚔 Волна преступности",
+      effect: () => {
+        let increase = 3 + Math.random() * 8;
+        game.crimeRate = Math.min(50, game.crimeRate + increase);
+        addEventLog(`🚔 Волна преступности! Преступность +${increase.toFixed(1)}%`, false);
+        showNotification(`🚔 Преступность выросла на ${increase.toFixed(1)}%`, false);
+      }
+    });
+  } else if (crime < 5 && totalPop > 200) {
+    possibleEvents.push({
+      name: "🚔 Усиление полиции",
+      effect: () => {
+        let decrease = 2 + Math.random() * 6;
+        game.crimeRate = Math.max(0, game.crimeRate - decrease);
+        addEventLog(`🚔 Успешная операция полиции! Преступность -${decrease.toFixed(1)}%`, true);
+        showNotification(`🚔 Преступность снизилась на ${decrease.toFixed(1)}%`, true);
+      }
+    });
+  }
+  
+  // Экологическая авария — если есть заводы или электростанции
+  if (factories > 0 || powerStations > 0) {
+    possibleEvents.push({
+      name: "☣️ Экологическая авария",
+      effect: () => {
+        let decrease = 5 + Math.random() * 12;
+        game.ecology = Math.max(0, game.ecology - decrease);
+        addEventLog(`☣️ Экологическая авария на предприятии! Экология -${decrease.toFixed(1)}%`, false);
+        showNotification(`☣️ Экология упала на ${decrease.toFixed(1)}%`, false);
+      }
+    });
+  }
+  
+  // Фестиваль — если счастье не максимально
+  if (happiness < 90) {
+    possibleEvents.push({
+      name: "🎉 Фестиваль",
+      effect: () => {
+        let increase = 3 + Math.random() * 8;
+        for (let d of game.districts) d.happiness = Math.min(100, d.happiness + increase);
+        addEventLog(`🎉 Городской фестиваль! Счастье +${increase.toFixed(1)}`, true);
+        showNotification(`🎉 Счастье выросло на ${increase.toFixed(1)}`, true);
+      }
+    });
+  }
+  
+  // Посадка деревьев — если экология не максимальна
+  if (game.ecology < 85) {
+    possibleEvents.push({
+      name: "🌳 Посадка деревьев",
+      effect: () => {
+        let increase = 4 + Math.random() * 8;
+        game.ecology = Math.min(100, game.ecology + increase);
+        addEventLog(`🌳 Экологическая акция! Экология +${increase.toFixed(1)}%`, true);
+        showNotification(`🌳 Экология выросла на ${increase.toFixed(1)}%`, true);
+      }
+    });
+  }
+  
+  // Демографический бум — если есть свободные рабочие места
+  const jobs = totalJobs();
+  const pop = totalPopulation();
+  if (jobs > pop && pop > 100) {
+    possibleEvents.push({
+      name: "👶 Демографический бум",
+      effect: () => {
+        let increase = Math.floor(pop * 0.015) + 5;
+        game.migrationBonus = (game.migrationBonus || 0) + increase;
+        addEventLog(`👶 Рождаемость выросла! +${increase} жителей`, true);
+        showNotification(`👶 Население увеличилось на ${increase}`, true);
+      }
+    });
+  }
+  
+  // Строительный бум — если есть деньги и дома
+  if (game.money > 30000 && totalHousesCount > 3) {
+    possibleEvents.push({
+      name: "🏗️ Строительный бум",
+      effect: () => {
+        let bonus = Math.floor(Math.random() * 20000) + 8000;
+        game.money += bonus;
+        addEventLog(`🏗️ Строительный бум! Город получил ${bonus}💰 на развитие`, true);
+        showNotification(`🏗️ +${bonus}💰 на строительство`, true);
+      }
+    });
+  }
+  
+  // Если нет подходящих событий — ничего не делаем
+  if (possibleEvents.length === 0) return;
+  
+  const event = possibleEvents[Math.floor(Math.random() * possibleEvents.length)];
+  event.effect();
   updateUI();
 }
 
+// ========== ПРЕСТИЖ, СУНДУК, НАГРАДЫ ==========
 function prestige() {
   if(game.cityStage < cityStages.length-1) { alert("Достигните Мегаполиса для престижа!"); return; }
   if(confirm("Переродиться? Бонус +10% к доходу навсегда. Город сбросится.")) {
@@ -701,11 +833,12 @@ function prestige() {
     game.level = 1;
     game.cityStage = 0;
     game.lastChestTime = 0;
+    game.lastInvestorTime = 0;
     game.eventLog = [];
     game.upgrades = { income:0, discount:0, happiness:0, road_capacity:0, energy_efficiency:0, solar_panels:0 };
     for(let id in achievementsDef) game.achievements[id] = false;
     updateEcology();
-    addEventLog(`⭐ ПРЕСТИЖ ${game.presticeCount}! Бонус x${game.prestigeBonus}`, true);
+    addEventLog(`⭐ ПРЕСТИЖ ${game.prestigeCount}! Бонус x${game.prestigeBonus}`, true);
     updateUI();
     scheduleSave();
   }
@@ -795,9 +928,7 @@ function updateDistrictUI() {
 
 // ========== UI ОБНОВЛЕНИЕ ==========
 function updateUI() {
-  // Заголовок города
   document.getElementById("cityTitle").innerHTML = `🏘️ ${game.cityName || "Безымянный город"}`;
-  
   document.getElementById("money").innerText = Math.floor(game.money);
   document.getElementById("people").innerText = totalPopulation();
   document.getElementById("jobs").innerText = totalJobs();
@@ -884,7 +1015,7 @@ function updateUI() {
   updateDistrictUI();
 }
 
-// ========== СОХРАНЕНИЕ И ЗАГРУЗКА ==========
+// ========== СОХРАНЕНИЕ ==========
 function saveGame() {
   game.lastSaveTime = Date.now();
   let toSave = {
@@ -892,7 +1023,8 @@ function saveGame() {
     ecology: game.ecology, prestigeBonus: game.prestigeBonus, prestigeCount: game.prestigeCount,
     cityName: game.cityName, districts: game.districts, currentDistrict: game.currentDistrict,
     upgrades: game.upgrades, achievements: game.achievements, level: game.level, cityStage: game.cityStage,
-    lastSaveTime: game.lastSaveTime, lastChestTime: game.lastChestTime, eventLog: game.eventLog, migrationBonus: game.migrationBonus
+    lastSaveTime: game.lastSaveTime, lastChestTime: game.lastChestTime, lastInvestorTime: game.lastInvestorTime,
+    eventLog: game.eventLog, migrationBonus: game.migrationBonus
   };
   localStorage.setItem(STORAGE_KEY, JSON.stringify(toSave));
 }
@@ -918,6 +1050,7 @@ function loadGame() {
     game.currentDistrict = 0;
   }
   if(!game.lastChestTime) game.lastChestTime = 0;
+  if(!game.lastInvestorTime) game.lastInvestorTime = 0;
   if(!game.eventLog) game.eventLog = [];
   if(!game.migrationBonus) game.migrationBonus = 0;
   if(!game.upgrades) game.upgrades = { income:0, discount:0, happiness:0, road_capacity:0, energy_efficiency:0, solar_panels:0 };
@@ -956,7 +1089,8 @@ function initTaxButtons() {
     cont.appendChild(btn);
   }
 }
-// ========== ТАЙМЕРЫ ==========
+
+// ========== ТАЙМЕР ==========
 setInterval(()=>{
   let inc = calcIncomePerTick();
   if(totalPopulation()>0 || totalStores()>0) {
@@ -975,6 +1109,7 @@ setInterval(()=>{
   checkAchievements();
   applyMigration();
   randomEvent();
+  tryInvokeInvestor(); // вызов инвестора по заслугам
   updateUI();
 }, 3000);
 

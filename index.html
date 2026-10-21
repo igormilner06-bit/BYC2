@@ -1,1131 +1,782 @@
 <!DOCTYPE html>
-<html>
+<html lang="ru">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>City Game — Районы, престиж, события</title>
+<title>🎰 Виртуальное Казино</title>
 <style>
-  body { font-family: Arial; margin:0; background:#eef2f7; }
-  .container { padding:15px; max-width:750px; margin:auto; }
-  .card { background:#fff; padding:15px; margin-bottom:10px; border-radius:12px; box-shadow:0 2px 5px rgba(0,0,0,0.1); }
-  button { padding:10px; margin:5px 0; width:100%; background:#4CAF50; color:white; border:none; border-radius:8px; cursor:pointer; font-size:16px; transition:0.1s; }
-  button:disabled { background:#aaa; cursor:not-allowed; }
-  .reset-btn, .prestige-btn { background:#f44336; margin-top:10px; }
-  .prestige-btn { background:#9c27b0; }
-  .building-group, .bonus-group { margin-bottom:20px; border-left:4px solid #ff9800; padding-left:10px; }
-  h3 { margin:0 0 10px 0; color:#333; }
-  .building-count, .bonus-level { font-size:14px; color:#555; margin-left:10px; }
-  hr { margin:20px 0; }
-  .level-progress { background:#ddd; border-radius:10px; height:12px; margin-top:5px; overflow:hidden; }
-  .level-progress-fill { background:#ff9800; width:0%; height:100%; }
-  .tax-buttons { display:flex; gap:5px; flex-wrap:wrap; }
-  .tax-buttons button { flex:1; background:#607d8b; margin:2px; }
-  .flash { animation: flashAnim 0.3s ease; }
-  @keyframes flashAnim { 0% { background-color:#ff9800; } 100% { background-color:#4CAF50; } }
-  .build-max-btn { background:#2196f3; margin-top:0; margin-bottom:10px; font-size:14px; padding:5px; }
-  .achievement-item, .daily-item, .event-item { background:#e0f7fa; border-radius:8px; padding:5px; margin:5px 0; font-size:14px; }
-  .two-columns { display: flex; gap: 15px; flex-wrap: wrap; }
-  .two-columns > div { flex: 1; min-width: 200px; }
-  .rare-building { border-left: 4px solid #ffd700; background:#fff8e7; }
-  .chest-btn { background:#ff9800; font-size:18px; font-weight:bold; }
-  .event-log { max-height: 150px; overflow-y: auto; font-size:12px; background:#f9f9f9; padding:5px; border-radius:8px; }
-  .ecology-bar { background:#ddd; border-radius:10px; height:8px; margin-top:3px; overflow:hidden; }
-  .ecology-fill { background:#8bc34a; width:100%; height:100%; }
-  
-  .building-row { display: flex; gap: 8px; align-items: center; }
-  .building-row button.main-btn { flex: 1; margin:0; }
-  .building-row button.max-btn { width: 60px; background:#2196f3; font-size:14px; margin:0; padding:10px 0; }
-  
-  .notification-area {
-    position: fixed;
-    top: 20px;
-    left: 50%;
-    transform: translateX(-50%);
-    z-index: 1000;
-    pointer-events: none;
-  }
-  .notification {
-    background: rgba(0,0,0,0.85);
-    color: #ffd700;
-    padding: 12px 24px;
-    border-radius: 40px;
-    margin-bottom: 10px;
-    font-weight: bold;
-    text-align: center;
-    animation: fadeOutUp 2s forwards;
-    white-space: nowrap;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-  }
-  @keyframes fadeOutUp {
-    0% { opacity: 1; transform: translateY(0); }
-    70% { opacity: 1; }
-    100% { opacity: 0; transform: translateY(-30px); display: none; }
-  }
-  .district-card {
-    background:#fef9e6;
-    border-left: 4px solid #ff9800;
-    margin-bottom: 8px;
-    padding: 8px;
-    border-radius: 8px;
-  }
-  .district-active {
-    background:#e8f5e9;
-    border-left: 4px solid #4caf50;
-  }
-  .district-buttons {
-    display: flex;
-    gap: 8px;
-    margin-top: 5px;
-  }
-  .district-buttons button {
-    width: auto;
-    flex: 1;
-    margin: 0;
-    padding: 5px;
-    font-size: 12px;
-  }
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: system-ui, -apple-system, sans-serif;
+  background: linear-gradient(135deg, #1a1a2e, #16213e);
+  color: #eee; min-height: 100vh; overflow-x: hidden;
+}
+header {
+  background: rgba(0,0,0,0.6); padding: 12px 20px;
+  display: flex; justify-content: space-between; align-items: center;
+  border-bottom: 2px solid #ffd700; position: sticky; top: 0; z-index: 10;
+}
+header h1 { font-size: 18px; color: #ffd700; }
+.header-right { display: flex; gap: 10px; align-items: center; }
+.balance { background: #2a2a4e; padding: 6px 14px; border-radius: 20px; font-weight: bold; }
+.balance::before { content: '🪙 '; }
+.daily-btn {
+  background: #ffd700; border: none; padding: 6px 14px; border-radius: 6px;
+  font-weight: bold; font-size: 12px; cursor: pointer;
+}
+.screen { padding: 20px; max-width: 900px; margin: 0 auto; }
+.hidden { display: none !important; }
+.alert {
+  background: #3a1a1a; border-left: 3px solid #ff4444; padding: 8px 12px;
+  margin: 10px auto; font-size: 12px; color: #ffaaaa; border-radius: 4px;
+  max-width: 900px;
+}
+.game-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 15px; margin-top: 20px; }
+.game-card {
+  background: linear-gradient(135deg, #2a2a4e, #3a3a5e); border-radius: 12px;
+  padding: 20px; cursor: pointer; transition: transform .2s, box-shadow .2s;
+  border: 2px solid transparent; text-align: center;
+}
+.game-card:hover { transform: translateY(-4px); box-shadow: 0 8px 20px rgba(255,215,0,0.25); border-color: #ffd700; }
+.game-card .icon { font-size: 48px; display: block; margin-bottom: 10px; }
+.game-card h3 { font-size: 15px; color: #ffd700; margin-bottom: 6px; }
+.game-card p { font-size: 12px; color: #aaa; }
+.back-btn {
+  background: #444; border: none; color: white; padding: 8px 16px; border-radius: 6px;
+  cursor: pointer; margin-bottom: 20px; font-size: 14px;
+}
+.back-btn:hover { background: #555; }
+button { font-family: inherit; cursor: pointer; }
+.btn {
+  background: linear-gradient(135deg, #ffd700, #ffb700); border: none; color: #000;
+  padding: 10px 20px; border-radius: 6px; font-weight: bold; font-size: 14px;
+  transition: opacity .2s;
+}
+.btn:hover { opacity: 0.9; }
+.btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.btn-red { background: #ff4455; color: white; }
+.controls { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin: 15px 0; }
+.controls input {
+  background: #2a2a4e; border: 1px solid #444; color: #fff; padding: 8px 12px;
+  border-radius: 6px; width: 110px; font-size: 14px;
+}
+#crash-canvas { background: #0a0a1a; border-radius: 8px; display: block; margin: 10px auto; max-width: 100%; }
+.crash-info { text-align: center; font-size: 22px; font-weight: bold; color: #ffd700; min-height: 32px; }
+/* Roulette */
+.roulette-numbers { display: grid; grid-template-columns: repeat(13, 1fr); gap: 4px; margin: 15px 0; }
+.rn {
+  aspect-ratio: 1; display: flex; align-items: center; justify-content: center;
+  background: #2a2a4e; border-radius: 4px; font-size: 10px; cursor: pointer;
+  border: 2px solid transparent; position: relative; user-select: none;
+}
+.rn.red { background: #8b1a1a; }
+.rn.black { background: #111; }
+.rn.green { background: #1a6b1a; }
+.rn.mult::after { content: '⚡'; position: absolute; top: 0; right: 2px; font-size: 9px; }
+.rn.selected { border-color: #ffd700; box-shadow: 0 0 8px #ffd700; }
+.roulette-bet-types { display: flex; gap: 8px; margin: 10px 0; flex-wrap: wrap; }
+.rbt {
+  padding: 8px 16px; border-radius: 6px; border: 2px solid transparent;
+  cursor: pointer; font-weight: bold; font-size: 13px; user-select: none;
+}
+.rbt.selected { border-color: #ffd700; box-shadow: 0 0 8px #ffd700; }
+.result-display { font-size: 28px; text-align: center; font-weight: bold; min-height: 46px; padding: 8px; }
+/* Slots */
+.slot-grid {
+  display: grid; grid-template-columns: repeat(6, 1fr); gap: 4px;
+  max-width: 400px; margin: 15px auto; background: #0a0a1a; padding: 8px; border-radius: 8px;
+}
+.slot-cell {
+  aspect-ratio: 1; background: #1a1a3e; border-radius: 4px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 24px; transition: background .3s, transform .2s;
+}
+.slot-cell.win { background: #ffd700; transform: scale(1.08); box-shadow: 0 0 12px #ffd700; }
+#crazy-wheel { display: block; margin: 10px auto; max-width: 100%; }
 </style>
 </head>
 <body>
-<div class="container">
-  <div id="notificationArea" class="notification-area"></div>
 
-  <h2 id="cityTitle">🏘️ Загрузка...</h2>
+<header>
+  <h1>🎰 Виртуальное Казино</h1>
+  <div class="header-right">
+    <button class="daily-btn" id="daily-btn">🎁 Бонус</button>
+    <div class="balance" id="balance">1000</div>
+  </div>
+</header>
 
-  <div class="card">
-    <div>🏆 ЭТАП: <strong id="cityStageName">Деревня</strong> <span id="stageMultiplierDisplay">(x1 доход)</span>
-      <button id="prestigeBtn" onclick="prestige()" class="prestige-btn" style="width:auto; float:right; padding:5px;">⭐ Престиж</button>
+<div class="alert">⚠️ 18+ Развлекательный прототип. Игра на виртуальные фишки. Реальные деньги не используются.</div>
+
+<!-- LOBBY -->
+<div id="lobby" class="screen">
+  <h2 style="color:#ffd700;margin-bottom:8px;">Выбери игру</h2>
+  <p style="color:#aaa;font-size:13px;">Топ-5 самых популярных форматов казино-игр 2025–2026</p>
+  <div class="game-grid">
+    <div class="game-card" data-game="crash">
+      <span class="icon">✈️</span>
+      <h3>Crash / Aviator</h3>
+      <p>Растущий коэффициент</p>
     </div>
-    <div>⭐ City Score: <span id="cityScoreValue">0.00</span> / <span id="cityScoreNext">0.20</span></div>
-    <div class="level-progress"><div class="level-progress-fill" id="stageScoreProgress"></div></div>
-    <div id="stageRequirements"></div>
-  </div>
-
-  <div class="card">
-    <div>📊 Уровень <strong id="level">1</strong> <span id="levelProgressText"></span></div>
-    <div class="level-progress"><div class="level-progress-fill" id="levelProgressFill"></div></div>
-    💰 Деньги: <span id="money">0</span><br>
-    👥 Жители: <span id="people">0</span> (Рабочих мест: <span id="jobs">0</span>/<span id="jobCapacity">0</span>)<br>
-    😊 Счастье: <span id="happy">0</span> (множитель: <span id="happinessMultDisplay">1.00</span>)<br>
-    🚔 Преступность: <span id="crimeRate">0</span>% (штраф -<span id="crimePenaltyDisplay">0</span>%)<br>
-    🌿 Экология: <span id="ecology">100</span>% (штраф -<span id="ecologyPenaltyDisplay">0</span>%)<br>
-    💰 Налог: <span id="taxRate">0</span>% (бонус +<span id="taxBonusDisplay">0</span>%)<br>
-    📈 Доход за 3 сек: <span id="incomePerTick">0</span><br>
-    🛣️ Дороги: <span id="roadUsage">0</span>/<span id="roadCapacity">0</span><br>
-    ⚡ Электричество: <span id="powerUsage">0</span>/<span id="powerSupply">0</span><br>
-    📉 Эффективность: <span id="infraEfficiency">100</span>%<br>
-    ⭐ Очки развития: <span id="devPoints">0</span><br>
-    🏆 Бонус престижа: x<span id="prestigeBonus">1.00</span>
-  </div>
-
-  <div class="card">
-    <div>💰 Налоговая ставка:</div>
-    <div class="tax-buttons" id="taxButtons"></div>
-  </div>
-
-  <div class="card">
-    <button id="chestBtn" onclick="openChest()" class="chest-btn">🎁 Открыть сундук (раз в 10 мин)</button>
-    <div id="chestTimer" style="font-size:12px; text-align:center;"></div>
-  </div>
-
-  <div class="card" id="districtsPanel">
-    <div style="display:flex; justify-content:space-between; align-items:center;">
-      <div style="font-size:1.1em; font-weight:bold;">🏘️ Районы города</div>
-      <button onclick="createDistrict()" style="width:auto; padding:5px 10px; background:#607d8b;">➕ Создать район</button>
+    <div class="game-card" data-game="roulette">
+      <span class="icon">🎡</span>
+      <h3>Lightning Roulette</h3>
+      <p>Рулетка с множителями</p>
     </div>
-    <div id="districtsList"></div>
-  </div>
-
-  <div class="building-group rare-building">
-    <h3>🌟 Редкие уникальные здания</h3>
-    <div class="building-row"><button id="btn_tvtower" class="main-btn" onclick="build('tvtower')">🗼 Телебашня <span class="building-price" id="price_tvtower">100000</span>💰 +10% доход, +5 счастья <span class="building-count" id="count_tvtower">0</span></button><button class="max-btn" onclick="buildMax('tvtower')">Max</button></div>
-    <div class="building-row"><button id="btn_airport" class="main-btn" onclick="build('airport')">🛫 Аэропорт <span class="building-price" id="price_airport">150000</span>💰 +20% доход, +10 счастья <span class="building-count" id="count_airport">0</span></button><button class="max-btn" onclick="buildMax('airport')">Max</button></div>
-    <div class="building-row"><button id="btn_bank" class="main-btn" onclick="build('bank')">🏦 Центробанк <span class="building-price" id="price_bank">120000</span>💰 +5% к доходам, +5000💰 бонус <span class="building-count" id="count_bank">0</span></button><button class="max-btn" onclick="buildMax('bank')">Max</button></div>
-    <div class="building-row"><button id="btn_themepark" class="main-btn" onclick="build('themepark')">🎡 Парк развлечений <span class="building-price" id="price_themepark">80000</span>💰 +15 счастья, +5% экологии <span class="building-count" id="count_themepark">0</span></button><button class="max-btn" onclick="buildMax('themepark')">Max</button></div>
-  </div>
-
-  <div class="building-group">
-    <h3>🪵 Деревянные дома</h3>
-    <div class="building-row"><button id="btn_wooden_small" class="main-btn" onclick="build('wooden_small')">🏠 Деревянный малый <span class="building-price" id="price_wooden_small">250</span>💰 +5 жит. <span class="building-count" id="count_wooden_small">0</span></button><button class="max-btn" onclick="buildMax('wooden_small')">Max</button></div>
-    <div class="building-row"><button id="btn_wooden_medium" class="main-btn" onclick="build('wooden_medium')">🏡 Деревянный средний <span class="building-price" id="price_wooden_medium">500</span>💰 +12 жит. <span class="building-count" id="count_wooden_medium">0</span></button><button class="max-btn" onclick="buildMax('wooden_medium')">Max</button></div>
-    <div class="building-row"><button id="btn_wooden_large" class="main-btn" onclick="build('wooden_large')">🏠 Деревянный большой <span class="building-price" id="price_wooden_large">1000</span>💰 +25 жит. <span class="building-count" id="count_wooden_large">0</span></button><button class="max-btn" onclick="buildMax('wooden_large')">Max</button></div>
-  </div>
-
-  <div class="building-group">
-    <h3>🧱 Кирпичные дома</h3>
-    <div class="building-row"><button id="btn_brick_small" class="main-btn" onclick="build('brick_small')">🧱 Кирпичный малый <span class="building-price" id="price_brick_small">4000</span>💰 +40 жит. <span class="building-count" id="count_brick_small">0</span></button><button class="max-btn" onclick="buildMax('brick_small')">Max</button></div>
-    <div class="building-row"><button id="btn_brick_medium" class="main-btn" onclick="build('brick_medium')">🏢 Кирпичный средний <span class="building-price" id="price_brick_medium">7000</span>💰 +80 жит. <span class="building-count" id="count_brick_medium">0</span></button><button class="max-btn" onclick="buildMax('brick_medium')">Max</button></div>
-    <div class="building-row"><button id="btn_brick_large" class="main-btn" onclick="build('brick_large')">🏢 Кирпичный большой <span class="building-price" id="price_brick_large">12000</span>💰 +140 жит. <span class="building-count" id="count_brick_large">0</span></button><button class="max-btn" onclick="buildMax('brick_large')">Max</button></div>
-  </div>
-
-  <div class="building-group">
-    <h3>🏙️ Многоэтажные</h3>
-    <div class="building-row"><button id="btn_multistory" class="main-btn" onclick="build('multistory')">🏙️ Многоэтажный дом <span class="building-price" id="price_multistory">20000</span>💰 +350 жит. <span class="building-count" id="count_multistory">0</span></button><button class="max-btn" onclick="buildMax('multistory')">Max</button></div>
-  </div>
-
-  <div class="building-group">
-    <h3>🛒 Инфраструктура и сервисы</h3>
-    <div class="building-row"><button id="btn_store" class="main-btn" onclick="build('store')">🛍️ Магазин <span class="building-price" id="price_store">3000</span>💰 +5 счастья <span class="building-count" id="count_store">0</span></button><button class="max-btn" onclick="buildMax('store')">Max</button></div>
-    <div class="building-row"><button id="btn_road" class="main-btn" onclick="build('road')">🛣️ Дорога <span class="building-price" id="price_road">400</span>💰 <span class="building-count" id="count_road">0</span></button><button class="max-btn" onclick="buildMax('road')">Max</button></div>
-    <div class="building-row"><button id="btn_power_station" class="main-btn" onclick="build('power_station')">⚡ Электростанция <span class="building-price" id="price_power_station">4000</span>💰 <span class="building-count" id="count_power_station">0</span></button><button class="max-btn" onclick="buildMax('power_station')">Max</button></div>
-    <div class="building-row"><button id="btn_school" class="main-btn" onclick="build('school')">🏫 Школа <span class="building-price" id="price_school">5000</span>💰 +10 счастья <span class="building-count" id="count_school">0</span></button><button class="max-btn" onclick="buildMax('school')">Max</button></div>
-    <div class="building-row"><button id="btn_factory" class="main-btn" onclick="build('factory')">🏭 Завод <span class="building-price" id="price_factory">8000</span>💰 -5 счастья, -3 экология <span class="building-count" id="count_factory">0</span></button><button class="max-btn" onclick="buildMax('factory')">Max</button></div>
-    <div class="building-row"><button id="btn_police" class="main-btn" onclick="build('police')">🚔 Полиция <span class="building-price" id="price_police">3000</span>💰 -3% преступности <span class="building-count" id="count_police">0</span></button><button class="max-btn" onclick="buildMax('police')">Max</button></div>
-    <div class="building-row"><button id="btn_transport" class="main-btn" onclick="build('transport')">🚌 Транспорт <span class="building-price" id="price_transport">2500</span>💰 +5% доход <span class="building-count" id="count_transport">0</span></button><button class="max-btn" onclick="buildMax('transport')">Max</button></div>
-  </div>
-
-  <div class="card">
-    <div style="font-size:1.2em; font-weight:bold">🎁 Бонусы и награды</div>
-    <div class="two-columns">
-      <div><div>🏅 Достижения</div><div id="achievementsList"></div></div>
-      <div><div>📅 Ежедневная награда</div><div id="dailyRewardDisplay"></div><button onclick="claimDailyReward()" style="margin-top:5px;">🎁 Забрать</button></div>
+    <div class="game-card" data-game="olympus">
+      <span class="icon">⚡</span>
+      <h3>Gates of Olympus</h3>
+      <p>Слот 6×5 · кластеры</p>
+    </div>
+    <div class="game-card" data-game="sweet">
+      <span class="icon">🍬</span>
+      <h3>Sweet Bonanza</h3>
+      <p>Слот с tumble</p>
+    </div>
+    <div class="game-card" data-game="crazy">
+      <span class="icon">🎪</span>
+      <h3>Crazy Time</h3>
+      <p>Колесо с бонусами</p>
     </div>
   </div>
+</div>
 
-  <div class="card">
-    <div>📰 События:</div>
-    <div id="eventLog" class="event-log"></div>
+<!-- CRASH -->
+<div id="game-crash" class="screen hidden">
+  <button class="back-btn" onclick="goHome()">← Назад</button>
+  <h2 style="color:#ffd700;">✈️ Aviator (Crash)</h2>
+  <canvas id="crash-canvas" width="600" height="300"></canvas>
+  <div class="crash-info" id="crash-info">Сделай ставку и нажми «Взлёт»</div>
+  <div class="controls">
+    <input type="number" id="crash-bet" value="50" min="1">
+    <button class="btn" id="crash-play">✈️ Взлёт</button>
+    <button class="btn btn-red hidden" id="crash-cashout">💰 Забрать</button>
   </div>
+</div>
 
-  <div class="bonus-group">
-    <h3>📈 Улучшения</h3>
-    <div>💼 Бизнес-центр: x<span id="incomeMultiplierDisplay">1.2</span> (<span id="incomeBonusLevel">0</span>)</div>
-    <button id="btn_incomeUpgrade" onclick="buyUpgrade('income')">📈 Улучшить (<span id="incomeUpgradePrice">1000</span>💰)</button>
-    <div>🛠️ Скидка <span id="discountPercent">0</span>%</div>
-    <button id="btn_discountUpgrade" onclick="buyUpgrade('discount')">🔧 Нанять бригаду (<span id="discountUpgradePrice">2000</span>💰)</button>
-    <div>🌳 +<span id="happinessBonusLevel">0</span> счастья за здание</div>
-    <button id="btn_happinessUpgrade" onclick="buyUpgrade('happiness')">🌲 Парк (<span id="happinessUpgradePrice">1500</span>💰)</button>
-    <hr>
-    <h3>🏗️ Инфраструктурные</h3>
-    <div>🛣️ Дороги 5→10 (<span id="roadUpgradeLevel">0</span>/1)</div>
-    <button id="btn_roadUpgrade" onclick="buyInfraUpgrade('road_capacity')">🏗️ Улучшить дороги (2000💰)</button>
-    <div>⚡ Энергосбережение -20% (<span id="energyEfficiencyLevel">0</span>/1)</div>
-    <button id="btn_energyUpgrade" onclick="buyInfraUpgrade('energy_efficiency')">🔋 Энергосбережение (3000💰)</button>
-    <div>☀️ Солнечные панели +50 эн. (<span id="solarPanelsLevel">0</span>/1)</div>
-    <button id="btn_solarUpgrade" onclick="buyInfraUpgrade('solar_panels')">🌞 Солнечные панели (5000💰)</button>
+<!-- ROULETTE -->
+<div id="game-roulette" class="screen hidden">
+  <button class="back-btn" onclick="goHome()">← Назад</button>
+  <h2 style="color:#ffd700;">🎡 Lightning Roulette</h2>
+  <div class="result-display" id="roulette-result">Выбери ставку и крути</div>
+  <div class="roulette-numbers" id="roulette-grid"></div>
+  <div class="roulette-bet-types">
+    <div class="rbt" style="background:#8b1a1a;" data-bet="red">Красное ×2</div>
+    <div class="rbt" style="background:#111;border:1px solid #555;" data-bet="black">Чёрное ×2</div>
+    <div class="rbt" style="background:#2a4a2a;" data-bet="even">Чёт ×2</div>
+    <div class="rbt" style="background:#2a2a4a;" data-bet="odd">Нечет ×2</div>
   </div>
+  <div class="controls">
+    <input type="number" id="roulette-bet" value="50" min="1">
+    <button class="btn" id="roulette-spin">🎡 Крутить</button>
+  </div>
+</div>
 
-  <div class="card">
-    <button onclick="resetGame()" class="reset-btn">🗑️ Сбросить игру</button>
+<!-- OLYMPUS -->
+<div id="game-olympus" class="screen hidden">
+  <button class="back-btn" onclick="goHome()">← Назад</button>
+  <h2 style="color:#ffd700;">⚡ Gates of Olympus</h2>
+  <div class="slot-grid" id="olympus-grid"></div>
+  <div class="crash-info" id="olympus-info">Нажми «Крутить»</div>
+  <div class="controls">
+    <input type="number" id="olympus-bet" value="50" min="1">
+    <button class="btn" id="olympus-spin">🎰 Крутить</button>
+  </div>
+</div>
+
+<!-- SWEET -->
+<div id="game-sweet" class="screen hidden">
+  <button class="back-btn" onclick="goHome()">← Назад</button>
+  <h2 style="color:#ff69b4;">🍬 Sweet Bonanza</h2>
+  <div class="slot-grid" id="sweet-grid"></div>
+  <div class="crash-info" id="sweet-info">Нажми «Крутить»</div>
+  <div class="controls">
+    <input type="number" id="sweet-bet" value="50" min="1">
+    <button class="btn" id="sweet-spin">🎰 Крутить</button>
+  </div>
+</div>
+
+<!-- CRAZY TIME -->
+<div id="game-crazy" class="screen hidden">
+  <button class="back-btn" onclick="goHome()">← Назад</button>
+  <h2 style="color:#ff69b4;">🎪 Crazy Time</h2>
+  <canvas id="crazy-wheel" width="400" height="400"></canvas>
+  <div class="crash-info" id="crazy-info">Крути колесо</div>
+  <div class="controls">
+    <input type="number" id="crazy-bet" value="50" min="1">
+    <button class="btn" id="crazy-spin">🎡 Крутить</button>
   </div>
 </div>
 
 <script>
-const tg = window.Telegram?.WebApp;
-if (tg) { tg.ready(); tg.expand(); }
+/* ============ УТИЛИТЫ ============ */
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const rand = n => Math.floor(Math.random() * n);
 
-const STORAGE_KEY = "cityGameDistricts_" + (tg?.initDataUnsafe?.user?.id || "guest");
-const START_MONEY = 10000;
-
-function showNotification(message, isPositive = true) {
-  const area = document.getElementById("notificationArea");
-  const notif = document.createElement("div");
-  notif.className = "notification";
-  notif.style.color = isPositive ? "#ffd700" : "#ff9999";
-  notif.innerText = message;
-  area.appendChild(notif);
-  setTimeout(() => { if(notif.parentNode) notif.remove(); }, 2000);
-}
-
-// Достижения
-const achievementsDef = {
-  first_million: { name:"💰 Первый миллион", reward:50000, cond:()=>game.money>=1000000 },
-  builder_100: { name:"🏗️ 100 зданий", reward:20000, cond:()=>totalBuildings()>=100 },
-  happy_max: { name:"😊 Счастье 100", reward:15000, cond:()=>game.happiness>=99 },
-  crime_zero: { name:"🚔 Без преступности", reward:25000, cond:()=>game.crimeRate<1 },
-  level_50: { name:"📈 Уровень 50", reward:50000, cond:()=>game.level>=50 },
-  prestige_1: { name:"⭐ Первый престиж", reward:100000, cond:()=>game.prestigeCount>=1 }
+/* ============ КОШЕЛЁК ============ */
+const Wallet = {
+  KEY: 'vc_balance',
+  get() { return parseInt(localStorage.getItem(this.KEY) || '1000'); },
+  set(v) {
+    v = Math.max(0, Math.floor(v));
+    localStorage.setItem(this.KEY, v);
+    document.getElementById('balance').textContent = v;
+  },
+  add(v) { this.set(this.get() + v); },
+  sub(v) { if (this.get() < v) return false; this.set(this.get() - v); return true; }
 };
 
-let game = {
-  money: START_MONEY,
-  happiness: 60,
-  taxRate: 0,
-  crimeRate: 0,
-  ecology: 100,
-  prestigeBonus: 1.0,
-  prestigeCount: 0,
-  cityName: "",
-  districts: [],
-  currentDistrict: 0,
-  upgrades: { income:0, discount:0, happiness:0, road_capacity:0, energy_efficiency:0, solar_panels:0 },
-  achievements: {},
-  level:1, cityStage:0, lastSaveTime:Date.now(), lastChestTime:0,
-  eventLog: [], migrationBonus: 0,
-  lastInvestorTime: 0  // время последнего инвестора
-};
-for(let id in achievementsDef) if(game.achievements[id]===undefined) game.achievements[id]=false;
+/* ============ НАВИГАЦИЯ ============ */
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
+  document.getElementById(id).classList.remove('hidden');
+}
+let currentCleanup = null;
+function goHome() {
+  if (currentCleanup) { currentCleanup(); currentCleanup = null; }
+  showScreen('lobby');
+}
 
-let lastDailyClaim = 0;
-const DAILY_REWARD = 25000;
+/* ============ ЗАПУСК ============ */
+document.addEventListener('DOMContentLoaded', () => {
+  Wallet.set(Wallet.get());
 
-// ========== ФУНКЦИИ РАЙОНОВ ==========
-function createDistrict(forceName = null) {
-  let name = forceName;
-  if (!name) name = prompt("Введите название нового района:", "Новый район");
-  if (!name) return;
-  const newDistrict = {
-    name: name,
-    happiness: 60,
-    ecology: 100,
-    buildings: {
-      wooden_small:0, wooden_medium:0, wooden_large:0,
-      brick_small:0, brick_medium:0, brick_large:0, multistory:0,
-      store:0, road:0, power_station:0, school:0, factory:0, police:0, transport:0,
-      tvtower:0, airport:0, bank:0, themepark:0
+  // Daily bonus
+  document.getElementById('daily-btn').addEventListener('click', () => {
+    const today = new Date().toDateString();
+    if (localStorage.getItem('vc_daily') === today) {
+      alert('Бонус уже получен сегодня. Приходи завтра!');
+      return;
     }
-  };
-  game.districts.push(newDistrict);
-  if (game.districts.length === 1) game.currentDistrict = 0;
-  updateDistrictUI();
-  saveGame();
-  showNotification(`🏘️ Район "${name}" создан!`, true);
-}
+    localStorage.setItem('vc_daily', today);
+    Wallet.add(100);
+    alert('🎁 Ежедневный бонус: +100 фишек!');
+  });
 
-function selectDistrict(index) {
-  if (index >= 0 && index < game.districts.length) {
-    game.currentDistrict = index;
-    updateDistrictUI();
-    updateUI();
-    showNotification(`📍 Выбран район: ${game.districts[index].name}`, true);
+  document.querySelectorAll('.game-card').forEach(card => {
+    card.addEventListener('click', () => {
+      const g = card.dataset.game;
+      showScreen('game-' + g);
+    });
+  });
+
+  initCrash();
+  initRoulette();
+  initOlympus();
+  initSweet();
+  initCrazy();
+});
+
+/* ============ CRASH ============ */
+function initCrash() {
+  const canvas = document.getElementById('crash-canvas');
+  const ctx = canvas.getContext('2d');
+  const playBtn = document.getElementById('crash-play');
+  const cashBtn = document.getElementById('crash-cashout');
+  const info = document.getElementById('crash-info');
+  const betInput = document.getElementById('crash-bet');
+
+  let running = false, cashedOut = false, bet = 0, multiplier = 1, crashAt = 0, startTime = 0, points = [], raf = null;
+
+  function draw() {
+    ctx.fillStyle = '#0a0a1a';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    // сетка
+    ctx.strokeStyle = 'rgba(255,215,0,0.08)';
+    ctx.lineWidth = 1;
+    for (let i = 1; i < 6; i++) {
+      const y = canvas.height - i * (canvas.height / 6);
+      ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(canvas.width, y); ctx.stroke();
+    }
+    if (points.length > 1) {
+      ctx.strokeStyle = running ? '#ffd700' : '#ff4444';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(points[0].x, points[0].y);
+      for (let i = 1; i < points.length; i++) ctx.lineTo(points[i].x, points[i].y);
+      ctx.stroke();
+      const last = points[points.length - 1];
+      ctx.font = '26px serif';
+      ctx.fillText('✈️', last.x - 13, last.y - 5);
+    }
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 32px system-ui';
+    ctx.textAlign = 'center';
+    ctx.fillText(multiplier.toFixed(2) + 'x', canvas.width / 2, 55);
+    ctx.textAlign = 'start';
   }
-}
 
-function getCurrentDistrict() {
-  if (!game.districts.length) return null;
-  return game.districts[game.currentDistrict];
-}
-
-function calcDistrictPopulation(district) {
-  const peopleMap = {
-    wooden_small:5, wooden_medium:12, wooden_large:25,
-    brick_small:40, brick_medium:80, brick_large:140, multistory:350,
-    tvtower:0, airport:0, bank:0, themepark:0, store:0, road:0, power_station:0, school:0, factory:0, police:0, transport:0
-  };
-  let pop = 0;
-  for (let type in district.buildings) {
-    pop += district.buildings[type] * (peopleMap[type] || 0);
+  function tick() {
+    if (!running) return;
+    const elapsed = (performance.now() - startTime) / 1000;
+    multiplier = Math.exp(elapsed * 0.7);
+    const x = Math.min(canvas.width - 15, 10 + elapsed * 90);
+    const y = Math.max(20, canvas.height - 20 - Math.log(multiplier) * 60);
+    points.push({ x, y });
+    draw();
+    if (multiplier >= crashAt) {
+      running = false;
+      playBtn.disabled = false;
+      cashBtn.classList.add('hidden');
+      draw();
+      if (!cashedOut) info.textContent = `💥 Вылет на ${crashAt.toFixed(2)}x — проигрыш ${bet}`;
+      return;
+    }
+    raf = requestAnimationFrame(tick);
   }
-  return pop;
-}
 
-function totalPopulation() {
-  let total = 0;
-  for (let d of game.districts) total += calcDistrictPopulation(d);
-  return total;
-}
-
-function totalBuildings() {
-  let total = 0;
-  for (let d of game.districts) {
-    for (let type in d.buildings) total += d.buildings[type];
+  function play() {
+    if (running) return;
+    bet = Math.max(1, parseInt(betInput.value) || 50);
+    if (!Wallet.sub(bet)) { info.textContent = '❌ Недостаточно фишек'; return; }
+    running = true; cashedOut = false; multiplier = 1; points = [];
+    const r = Math.random();
+    crashAt = Math.min(100, Math.max(1.01, 0.99 / (1 - r * 0.99)));
+    startTime = performance.now();
+    playBtn.disabled = true;
+    cashBtn.classList.remove('hidden');
+    info.textContent = 'Летим...';
+    requestAnimationFrame(tick);
   }
-  return total;
-}
 
-function totalJobs() {
-  const jobsMap = {
-    wooden_small:2, wooden_medium:4, wooden_large:6,
-    brick_small:8, brick_medium:12, brick_large:18, multistory:40,
-    store:5, power_station:10, school:8, factory:20, police:6, transport:8,
-    tvtower:20, airport:50, bank:30, themepark:40
-  };
-  let jobs = 0;
-  for (let d of game.districts) {
-    for (let type in d.buildings) jobs += d.buildings[type] * (jobsMap[type] || 0);
+  function cashout() {
+    if (!running || cashedOut) return;
+    cashedOut = true;
+    const win = Math.floor(bet * multiplier);
+    Wallet.add(win);
+    info.textContent = `💰 Забрал на ${multiplier.toFixed(2)}x — выигрыш ${win}`;
+    running = false;
+    playBtn.disabled = false;
+    cashBtn.classList.add('hidden');
+    cancelAnimationFrame(raf);
   }
-  return jobs;
+
+  playBtn.addEventListener('click', play);
+  cashBtn.addEventListener('click', cashout);
+  draw();
+  currentCleanup = () => { if (raf) cancelAnimationFrame(raf); running = false; };
 }
 
-function totalWooden() {
-  let sum = 0;
-  for (let d of game.districts) sum += d.buildings.wooden_small + d.buildings.wooden_medium + d.buildings.wooden_large;
-  return sum;
-}
+/* ============ ROULETTE ============ */
+function initRoulette() {
+  const grid = document.getElementById('roulette-grid');
+  const resultEl = document.getElementById('roulette-result');
+  const spinBtn = document.getElementById('roulette-spin');
+  const betInput = document.getElementById('roulette-bet');
+  const RED = new Set([1,3,5,7,9,12,14,16,18,19,21,23,25,27,30,32,34,36]);
 
-function totalBrick() {
-  let sum = 0;
-  for (let d of game.districts) sum += d.buildings.brick_small + d.buildings.brick_medium + d.buildings.brick_large;
-  return sum;
-}
+  let selectedBet = null;
+  let lightning = {};
+  let spinning = false;
 
-function totalHouses() {
-  let sum = 0;
-  const houseTypes = ['wooden_small','wooden_medium','wooden_large','brick_small','brick_medium','brick_large','multistory'];
-  for (let d of game.districts) {
-    for (let t of houseTypes) sum += d.buildings[t];
-  }
-  return sum;
-}
+  function colorOf(n) { return n === 0 ? 'green' : (RED.has(n) ? 'red' : 'black'); }
 
-function totalStores() {
-  let sum = 0;
-  for (let d of game.districts) sum += d.buildings.store;
-  return sum;
-}
-
-function getDistrictBuildingCount(type) {
-  let sum = 0;
-  for (let d of game.districts) sum += d.buildings[type] || 0;
-  return sum;
-}
-
-function addBuildingToCurrentDistrict(type, count = 1) {
-  if (!game.districts.length) return;
-  const district = game.districts[game.currentDistrict];
-  district.buildings[type] = (district.buildings[type] || 0) + count;
-}
-
-// ========== ОБЩИЕ РАСЧЁТЫ ==========
-function updateEcology() {
-  let pollution = 0;
-  for (let d of game.districts) {
-    pollution += (d.buildings.factory||0)*3 + (d.buildings.power_station||0)*1 - (d.buildings.themepark||0)*5;
-  }
-  pollution = Math.min(80, Math.max(0, pollution));
-  let ecology = 100 - pollution;
-  ecology = Math.min(100, Math.max(0, ecology));
-  game.ecology = ecology;
-}
-
-function getAverageHappiness() {
-  if (game.districts.length === 0) return 60;
-  let sum = 0;
-  for (let d of game.districts) sum += d.happiness;
-  return sum / game.districts.length;
-}
-
-function adjustHappinessTowardsTarget() {
-  let target = 70 - game.taxRate*1.5 + (totalStores())*2 + (getDistrictBuildingCount('school'))*1 + (getDistrictBuildingCount('police'))*0.5 + (getDistrictBuildingCount('transport'))*0.5;
-  target = Math.min(100, Math.max(10, target));
-  for (let d of game.districts) {
-    d.happiness += (target - d.happiness) * 0.05;
-    d.happiness = Math.min(100, Math.max(0, d.happiness));
-  }
-  game.happiness = Math.floor(getAverageHappiness());
-}
-
-function getUnemploymentEffect() {
-  let jobs = totalJobs();
-  let pop = totalPopulation();
-  if(pop<=0) return 1;
-  let employed = Math.min(jobs, pop);
-  let rate = (pop-employed)/pop;
-  if(rate<=0.1) return 1;
-  if(rate<=0.3) return 0.9;
-  return 0.7;
-}
-
-function getEcologyPenalty() {
-  let e = game.ecology;
-  if(e>=70) return 1;
-  if(e>=40) return 0.8+(e-40)/30*0.2;
-  return 0.5+e/40*0.3;
-}
-
-function getDiscountMultiplier() { return Math.max(0,1-game.upgrades.discount*0.05); }
-function getEffectivePrice(type) {
-  const prices={ wooden_small:250, wooden_medium:500, wooden_large:1000, brick_small:4000, brick_medium:7000, brick_large:12000, multistory:20000, store:3000, road:400, power_station:4000, school:5000, factory:8000, police:3000, transport:2500, tvtower:100000, airport:150000, bank:120000, themepark:80000 };
-  return Math.floor(prices[type]*getDiscountMultiplier());
-}
-function getIncomeMultiplier() { return (1.2+game.upgrades.income*0.1)*game.prestigeBonus; }
-function getHappinessMultiplier() { return 0.6+game.happiness/100*0.8; }
-function calcCrimeRate() {
-  let pop = totalPopulation();
-  let tax = 1+game.taxRate/100;
-  let base = pop/300 * (1 - game.happiness/100) * tax;
-  let policeEff = getDistrictBuildingCount('police') * 3;
-  let crime = Math.min(50, Math.max(0, base - policeEff));
-  return Math.floor(crime*10)/10;
-}
-
-function getRoadCapacity() {
-  let roads = getDistrictBuildingCount('road');
-  let base = roads * 5;
-  if(game.upgrades.road_capacity) base = roads * 10;
-  return base;
-}
-function getUsedRoadCapacity() {
-  let used = 0;
-  for (let d of game.districts) {
-    for (let type in d.buildings) {
-      if (type !== 'road' && type !== 'power_station') used += d.buildings[type];
+  function renderGrid() {
+    grid.innerHTML = '';
+    for (let n = 0; n <= 36; n++) {
+      const el = document.createElement('div');
+      el.className = 'rn ' + colorOf(n);
+      if (lightning[n]) el.classList.add('mult');
+      el.textContent = n + (lightning[n] ? ` ⚡${lightning[n]}` : '');
+      el.dataset.n = n;
+      el.addEventListener('click', () => selectBet('number', n, el));
+      grid.appendChild(el);
     }
   }
-  return used;
+
+  function selectBet(type, value, el) {
+    if (spinning) return;
+    document.querySelectorAll('.rn.selected, .rbt.selected').forEach(e => e.classList.remove('selected'));
+    el.classList.add('selected');
+    selectedBet = { type, value };
+  }
+
+  document.querySelectorAll('.rbt').forEach(btn => {
+    btn.addEventListener('click', () => {
+      if (spinning) return;
+      selectBet(btn.dataset.bet, null, btn);
+    });
+  });
+
+  function spin() {
+    if (spinning) return;
+    if (!selectedBet) { resultEl.textContent = 'Выбери ставку'; return; }
+    const bet = Math.max(1, parseInt(betInput.value) || 50);
+    if (!Wallet.sub(bet)) { resultEl.textContent = '❌ Мало фишек'; return; }
+    spinning = true;
+    spinBtn.disabled = true;
+    resultEl.textContent = '🎲 Крутим...';
+    resultEl.style.color = '#fff';
+
+    // Lightning numbers
+    lightning = {};
+    const pool = Array.from({length: 36}, (_, i) => i + 1);
+    for (let i = 0; i < 5; i++) {
+      const idx = rand(pool.length);
+      const n = pool.splice(idx, 1)[0];
+      lightning[n] = [50, 100, 200, 500][rand(4)];
+    }
+    renderGrid();
+
+    let count = 0;
+    const interval = setInterval(() => {
+      resultEl.textContent = '🎲 ' + rand(37);
+      count++;
+      if (count > 18) {
+        clearInterval(interval);
+        finishSpin(bet);
+      }
+    }, 70);
+  }
+
+  function finishSpin(bet) {
+    const n = rand(37);
+    const b = selectedBet;
+    let win = 0;
+    let msg = `Выпало: ${n} (${colorOf(n)})`;
+    if (b.type === 'number') {
+      if (b.value === n) {
+        win = lightning[n] ? bet * lightning[n] : bet * 36;
+        if (lightning[n]) msg += ` ⚡ ×${lightning[n]}!`;
+      }
+    } else if (b.type === 'red' && colorOf(n) === 'red') win = bet * 2;
+    else if (b.type === 'black' && colorOf(n) === 'black') win = bet * 2;
+    else if (b.type === 'even' && n !== 0 && n % 2 === 0) win = bet * 2;
+    else if (b.type === 'odd' && n % 2 === 1) win = bet * 2;
+
+    if (win > 0) {
+      Wallet.add(win);
+      resultEl.textContent = msg + ` — ВЫИГРЫШ ${win} 🪙`;
+      resultEl.style.color = '#ffd700';
+    } else {
+      resultEl.textContent = msg + ` — проигрыш ${bet}`;
+      resultEl.style.color = '#ff6666';
+    }
+    spinning = false;
+    spinBtn.disabled = false;
+    setTimeout(() => { resultEl.style.color = '#fff'; }, 2500);
+  }
+
+  renderGrid();
+  spinBtn.addEventListener('click', spin);
 }
-function getPowerSupply() {
-  let stations = getDistrictBuildingCount('power_station');
-  let per = 100;
-  if(game.upgrades.solar_panels) per = 150;
-  return stations * per;
-}
-function getPowerUsage() {
-  const cons = { wooden_small:1, wooden_medium:1, wooden_large:1, brick_small:2, brick_medium:2, brick_large:2, multistory:5, store:2, school:3, factory:8, police:2, transport:2, tvtower:5, airport:10, bank:3, themepark:4 };
-  let use = 0;
-  for (let d of game.districts) {
-    for (let type in d.buildings) {
-      let c = cons[type] || 0;
-      if(game.upgrades.energy_efficiency) c = Math.floor(c*0.8);
-      use += d.buildings[type] * c;
+
+/* ============ SLOTS (Olympus / Sweet) ============ */
+function createSlotGame(config) {
+  const gridEl = document.getElementById(config.gridId);
+  const infoEl = document.getElementById(config.infoId);
+  const spinBtn = document.getElementById(config.spinId);
+  const betInput = document.getElementById(config.betId);
+  const COLS = 6, ROWS = 5;
+  let grid = [], busy = false, currentBet = 0;
+
+  const randomSymbol = () => config.symbols[rand(config.symbols.length)];
+
+  function fill() {
+    grid = [];
+    for (let r = 0; r < ROWS; r++) {
+      const row = [];
+      for (let c = 0; c < COLS; c++) row.push(randomSymbol());
+      grid.push(row);
     }
   }
-  return use;
-}
-function getRoadEfficiency() { return getUsedRoadCapacity() > getRoadCapacity() ? 0.7 : 1; }
-function getPowerEfficiency() { return getPowerUsage() > getPowerSupply() ? 0.5 : 1; }
 
-function calcIncomePerTick() {
-  let pop = totalPopulation();
-  let extra = (totalStores())*15 + (getDistrictBuildingCount('school'))*5 + (getDistrictBuildingCount('factory'))*30;
-  let uniqBonus = 1 + (getDistrictBuildingCount('tvtower'))*0.1 + (getDistrictBuildingCount('airport'))*0.2;
-  let bankBonus = 1 + (getDistrictBuildingCount('bank'))*0.05;
-  let base = (pop + extra) * getIncomeMultiplier();
-  let hMult = getHappinessMultiplier();
-  let transp = 1 + (getDistrictBuildingCount('transport'))*0.05;
-  let tax = 1 + game.taxRate/100;
-  let crime = 1 - game.crimeRate/100;
-  let eco = getEcologyPenalty();
-  let unemp = getUnemploymentEffect();
-  let stage = cityStages[game.cityStage]?.multiplier || 1;
-  let roadEff = getRoadEfficiency(), powerEff = getPowerEfficiency();
-  return base * hMult * transp * tax * crime * eco * unemp * stage * roadEff * powerEff * uniqBonus * bankBonus;
-}
-
-function canBuildWithInfra(type, add=1) {
-  if(type==='road'||type==='power_station') return {ok:true};
-  let usedAfter = getUsedRoadCapacity() + add;
-  if(usedAfter > getRoadCapacity()) return {ok:false, reason:`Нужно ещё ${usedAfter-getRoadCapacity()} дорог`};
-  let cons = { wooden_small:1, wooden_medium:1, wooden_large:1, brick_small:2, brick_medium:2, brick_large:2, multistory:5, store:2, school:3, factory:8, police:2, transport:2, tvtower:5, airport:10, bank:3, themepark:4 };
-  let c = cons[type]||0;
-  if(game.upgrades.energy_efficiency) c = Math.floor(c*0.8);
-  let usageAfter = getPowerUsage() + c;
-  let supply = getPowerSupply();
-  if(usageAfter > supply) return {ok:false, reason:`Нужно ещё ${Math.ceil((usageAfter-supply)/(game.upgrades.solar_panels?150:100))} электростанций`};
-  return {ok:true};
-}
-
-function animateButton(btnId) { let btn=document.getElementById(btnId); if(btn){ btn.classList.add('flash'); setTimeout(()=>btn.classList.remove('flash'),300); } }
-function isBuildingUnlocked(type) {
-  if(['store','road','power_station','school','factory','police','transport','tvtower','airport','bank','themepark'].includes(type)) return true;
-  if(type.startsWith('wooden')) return true;
-  if(type.startsWith('brick')) { if(type==='brick_small') return totalWooden()>=5; if(type==='brick_medium') return totalWooden()>=10; if(type==='brick_large') return totalWooden()>=20; }
-  if(type==='multistory') return totalBrick()>=5;
-  return true;
-}
-
-function build(type) {
-  let info = { baseHappiness:{ wooden_small:1, wooden_medium:2, wooden_large:3, brick_small:4, brick_medium:5, brick_large:7, multistory:10, store:5, school:10, factory:-5, police:2, transport:1, tvtower:5, airport:10, bank:3, themepark:15, road:1, power_station:0 } };
-  let bh = info.baseHappiness[type] || 0;
-  if(!isBuildingUnlocked(type)) { alert("Недоступно"); return; }
-  let price = getEffectivePrice(type);
-  if(game.money < price) { alert(`Не хватает ${price}💰`); return; }
-  if(type!=='road'&&type!=='power_station') { let check=canBuildWithInfra(type); if(!check.ok) { alert(check.reason); return; } }
-  game.money -= price;
-  addBuildingToCurrentDistrict(type, 1);
-  let district = getCurrentDistrict();
-  district.happiness = Math.min(100, district.happiness + bh + game.upgrades.happiness);
-  if(type === 'factory') updateEcology();
-  if(type === 'themepark') updateEcology();
-  if(type === 'bank') { game.money += 5000; showNotification("🏦 Бонус банка: +5000💰", true); }
-  animateButton('btn_'+type);
-  updateCrime();
-  updateEcology();
-  checkLevelUp();
-  checkCityStage();
-  updateUI();
-  scheduleSave();
-}
-
-function buildMax(type) {
-  let info = { baseHappiness:{ wooden_small:1, wooden_medium:2, wooden_large:3, brick_small:4, brick_medium:5, brick_large:7, multistory:10, store:5, school:10, factory:-5, police:2, transport:1, tvtower:5, airport:10, bank:3, themepark:15, road:1, power_station:0 } };
-  let bh = info.baseHappiness[type] || 0;
-  if(!isBuildingUnlocked(type)) { alert("Недоступно"); return; }
-  let count = 0;
-  while(true) {
-    let price = getEffectivePrice(type);
-    if(game.money < price) break;
-    if(type!=='road'&&type!=='power_station') {
-      let check = canBuildWithInfra(type, getDistrictBuildingCount(type)+1);
-      if(!check.ok) break;
-    }
-    game.money -= price;
-    addBuildingToCurrentDistrict(type, 1);
-    let district = getCurrentDistrict();
-    district.happiness = Math.min(100, district.happiness + bh + game.upgrades.happiness);
-    count++;
-    if(type === 'factory') updateEcology();
-    if(type === 'themepark') updateEcology();
-    if(type === 'bank') { game.money += 5000; showNotification("🏦 Бонус банка: +5000💰", true); }
-  }
-  if(count>0) {
-    animateButton('btn_'+type);
-    updateCrime();
-    updateEcology();
-    checkLevelUp();
-    checkCityStage();
-    updateUI();
-    scheduleSave();
-    showNotification(`🚀 Построено ${count} шт. ${type}`, true);
-  } else alert("Недостаточно ресурсов для постройки");
-}
-
-function buyUpgrade(type) {
-  let cost = [0,1000,2000,4000,8000,16000][game.upgrades[type]+1];
-  if(!cost) { alert("Макс. уровень"); return; }
-  if(game.money < cost) { alert(`Нужно ${cost}💰`); return; }
-  game.money -= cost;
-  game.upgrades[type]++;
-  showNotification(`📈 Улучшение ${type} до уровня ${game.upgrades[type]}`, true);
-  updateUI();
-  scheduleSave();
-}
-
-function buyInfraUpgrade(up) {
-  let cost = up==='road_capacity'?2000: up==='energy_efficiency'?3000:5000;
-  if(game.upgrades[up]>=1) { alert("Уже куплено"); return; }
-  if(game.money < cost) { alert(`Нужно ${cost}💰`); return; }
-  game.money -= cost;
-  game.upgrades[up]=1;
-  showNotification(`🏗️ Инфраструктурное улучшение активировано`, true);
-  updateUI();
-  scheduleSave();
-}
-
-function updateCrime() { game.crimeRate = calcCrimeRate(); }
-
-// ========== ЭТАПЫ, УРОВНИ ==========
-const cityStages = [
-  { name: "🌾 Деревня",   scoreRequired: 0.0,  multiplier: 1.0, reward: 0 },
-  { name: "🏘️ Село",      scoreRequired: 0.35, multiplier: 1.2, reward: 10000 },
-  { name: "🏢 ПГТ",       scoreRequired: 0.55, multiplier: 1.5, reward: 20000 },
-  { name: "🏙️ Город",     scoreRequired: 0.75, multiplier: 2.0, reward: 40000 },
-  { name: "🌆 Мегаполис", scoreRequired: 0.90, multiplier: 3.0, reward: 80000 }
-];
-
-function calcCityScore() {
-  let popNorm = Math.min(1, totalPopulation() / 3000);
-  let happinessNorm = game.happiness / 100;
-  let safetyNorm = (100 - game.crimeRate) / 100;
-  let infraCount = getDistrictBuildingCount('police') + getDistrictBuildingCount('transport') + getDistrictBuildingCount('road')/5 + getDistrictBuildingCount('power_station')/2;
-  let infraNorm = Math.min(1, infraCount / 20);
-  let score = popNorm * 0.5 + happinessNorm * 0.2 + safetyNorm * 0.2 + infraNorm * 0.1;
-  return Math.min(0.99, Math.max(0, score));
-}
-
-function checkCityStage() {
-  let score = calcCityScore();
-  let newStage = 0;
-  for (let i=cityStages.length-1; i>=0; i--) if(score >= cityStages[i].scoreRequired) { newStage = i; break; }
-  if (score < 0.35) newStage = 0;
-  if (newStage > game.cityStage) {
-    for (let i=game.cityStage+1; i<=newStage; i++) { game.money += cityStages[i].reward; addEventLog(`🏙️ Город достиг этапа: ${cityStages[i].name} +${cityStages[i].reward}💰`); }
-    game.cityStage = newStage;
-  }
-  updateUI();
-}
-
-function generateLevelRequirements() {
-  let reqs = [];
-  for(let l=2;l<=10;l++) { let need=Math.round(3*Math.pow(1.35,l-2)); need=Math.min(need,100); let rew=Math.floor(500*Math.pow(1.3,l-2)); reqs.push({level:l, woodenNeeded:need, pointsNeeded:0, reward:rew}); }
-  for(let l=11;l<=100;l++) { let need=Math.floor(50*Math.pow(1.08,l-10)); need=Math.min(need,5000); let rew=Math.floor(2000*Math.pow(1.1,l-10)); reqs.push({level:l, woodenNeeded:999999, pointsNeeded:need, reward:rew}); }
-  return reqs;
-}
-const levelRequirements = generateLevelRequirements();
-function calcDevelopmentPoints() {
-  const pts = { wooden_small:1, wooden_medium:1, wooden_large:1, brick_small:2, brick_medium:3, brick_large:4, multistory:8, store:1, school:2, factory:3, police:1, transport:2, tvtower:10, airport:15, bank:12, themepark:8 };
-  let sum = 0;
-  for (let d of game.districts) for (let t in d.buildings) sum += d.buildings[t] * (pts[t] || 0);
-  return sum;
-}
-function getMaxLevelByWooden(w) { let max=1; for(let r of levelRequirements) if(r.level<=10 && w>=r.woodenNeeded) max=r.level; return max; }
-function getMaxLevelByPoints(p) { let max=1; for(let r of levelRequirements) if(r.level>10 && p>=r.pointsNeeded) max=r.level; return max; }
-function checkLevelUp() {
-  let wood = totalWooden(), pts = calcDevelopmentPoints();
-  let newLvl = Math.max(getMaxLevelByWooden(wood), getMaxLevelByPoints(pts));
-  while(game.level < newLvl) { game.level++; let req=levelRequirements.find(r=>r.level===game.level); if(req) game.money+=req.reward; }
-  updateUI();
-}
-function getNextLevelInfo() {
-  let next = levelRequirements.find(r=>r.level===game.level+1);
-  if(!next) return {maxLevelReached:true};
-  if(next.level<=10) return {needed:next.woodenNeeded, current:totalWooden(), type:'wooden', maxLevelReached:false};
-  else return {needed:next.pointsNeeded, current:calcDevelopmentPoints(), type:'points', maxLevelReached:false};
-}
-
-// ========== СОБЫТИЯ (улучшенная логика, инвестор убран из случайных) ==========
-function addEventLog(msg, showNotif=true) {
-  game.eventLog.unshift(msg+" ("+new Date().toLocaleTimeString()+")");
-  if(game.eventLog.length>10) game.eventLog.pop();
-  const el = document.getElementById("eventLog");
-  if(el) el.innerHTML = game.eventLog.map(m=>`<div>${m}</div>`).join('');
-  if(showNotif) showNotification(msg, true);
-}
-
-// Новая функция: проверка и вызов инвестора как награды за заслуги
-function tryInvokeInvestor() {
-  const now = Date.now();
-  const cooldown = 30 * 60 * 1000; // не чаще 1 раза в 30 минут
-  if (now - game.lastInvestorTime < cooldown) return false;
-  
-  // Условия для привлечения инвестора:
-  const conditions = {
-    population: totalPopulation() >= 500,
-    cityScore: calcCityScore() >= 0.5,
-    cityStageLevel: game.cityStage >= 2, // ПГТ или выше
-    crime: game.crimeRate < 15,
-    ecology: game.ecology > 50,
-    // Дополнительно: улучшение бизнес-центра до 3 уровня (можно отдельно, но здесь объединим ИЛИ)
-    businessCenter: game.upgrades.income >= 3
-  };
-  
-  // Если выполнено хотя бы 3 условия ИЛИ бизнес-центр 3 уровня
-  let goodConditions = Object.values(conditions).filter(v => v === true).length;
-  if (goodConditions >= 3 || conditions.businessCenter) {
-    // Рассчитываем сумму инвестиций: зависит от уровня города, дохода, населения
-    let baseInvestment = 30000 + Math.random() * 50000;
-    let multiplier = 1 + (game.cityStage * 0.3) + (game.upgrades.income * 0.2);
-    let investment = Math.floor(baseInvestment * multiplier);
-    game.money += investment;
-    game.lastInvestorTime = now;
-    addEventLog(`💼 Инвестор вложил ${investment}💰 в развитие города! (выполнено условий: ${goodConditions})`, true);
-    showNotification(`💼 Инвестор +${investment}💰`, true);
-    return true;
-  }
-  return false;
-}
-
-function randomEvent() {
-  // Вероятность обычных событий 12% каждые 3 секунды
-  if (Math.random() > 0.12) return;
-  
-  const totalPop = totalPopulation();
-  const totalHousesCount = totalHouses();
-  const factories = getDistrictBuildingCount('factory');
-  const powerStations = getDistrictBuildingCount('power_station');
-  const crime = game.crimeRate;
-  const happiness = game.happiness;
-  
-  let possibleEvents = [];
-  
-  // Пожар — только если есть дома
-  if (totalHousesCount > 0) {
-    possibleEvents.push({
-      name: "🔥 Пожар",
-      effect: () => {
-        let loss = Math.floor(game.money * (0.01 + Math.random() * 0.04));
-        loss = Math.min(loss, game.money * 0.1);
-        game.money = Math.max(0, game.money - loss);
-        addEventLog(`🔥 Пожар в жилом районе! Потеряно ${Math.floor(loss)}💰`, false);
-        showNotification(`🔥 Пожар! -${Math.floor(loss)}💰`, false);
+  function render() {
+    gridEl.innerHTML = '';
+    for (let r = 0; r < ROWS; r++) {
+      for (let c = 0; c < COLS; c++) {
+        const el = document.createElement('div');
+        el.className = 'slot-cell';
+        el.textContent = grid[r][c];
+        el.dataset.r = r; el.dataset.c = c;
+        gridEl.appendChild(el);
       }
-    });
-  }
-  
-  // Волна преступности — если преступность уже > 3%
-  if (crime > 3) {
-    possibleEvents.push({
-      name: "🚔 Волна преступности",
-      effect: () => {
-        let increase = 3 + Math.random() * 8;
-        game.crimeRate = Math.min(50, game.crimeRate + increase);
-        addEventLog(`🚔 Волна преступности! Преступность +${increase.toFixed(1)}%`, false);
-        showNotification(`🚔 Преступность выросла на ${increase.toFixed(1)}%`, false);
-      }
-    });
-  } else if (crime < 5 && totalPop > 200) {
-    possibleEvents.push({
-      name: "🚔 Усиление полиции",
-      effect: () => {
-        let decrease = 2 + Math.random() * 6;
-        game.crimeRate = Math.max(0, game.crimeRate - decrease);
-        addEventLog(`🚔 Успешная операция полиции! Преступность -${decrease.toFixed(1)}%`, true);
-        showNotification(`🚔 Преступность снизилась на ${decrease.toFixed(1)}%`, true);
-      }
-    });
-  }
-  
-  // Экологическая авария — если есть заводы или электростанции
-  if (factories > 0 || powerStations > 0) {
-    possibleEvents.push({
-      name: "☣️ Экологическая авария",
-      effect: () => {
-        let decrease = 5 + Math.random() * 12;
-        game.ecology = Math.max(0, game.ecology - decrease);
-        addEventLog(`☣️ Экологическая авария на предприятии! Экология -${decrease.toFixed(1)}%`, false);
-        showNotification(`☣️ Экология упала на ${decrease.toFixed(1)}%`, false);
-      }
-    });
-  }
-  
-  // Фестиваль — если счастье не максимально
-  if (happiness < 90) {
-    possibleEvents.push({
-      name: "🎉 Фестиваль",
-      effect: () => {
-        let increase = 3 + Math.random() * 8;
-        for (let d of game.districts) d.happiness = Math.min(100, d.happiness + increase);
-        addEventLog(`🎉 Городской фестиваль! Счастье +${increase.toFixed(1)}`, true);
-        showNotification(`🎉 Счастье выросло на ${increase.toFixed(1)}`, true);
-      }
-    });
-  }
-  
-  // Посадка деревьев — если экология не максимальна
-  if (game.ecology < 85) {
-    possibleEvents.push({
-      name: "🌳 Посадка деревьев",
-      effect: () => {
-        let increase = 4 + Math.random() * 8;
-        game.ecology = Math.min(100, game.ecology + increase);
-        addEventLog(`🌳 Экологическая акция! Экология +${increase.toFixed(1)}%`, true);
-        showNotification(`🌳 Экология выросла на ${increase.toFixed(1)}%`, true);
-      }
-    });
-  }
-  
-  // Демографический бум — если есть свободные рабочие места
-  const jobs = totalJobs();
-  const pop = totalPopulation();
-  if (jobs > pop && pop > 100) {
-    possibleEvents.push({
-      name: "👶 Демографический бум",
-      effect: () => {
-        let increase = Math.floor(pop * 0.015) + 5;
-        game.migrationBonus = (game.migrationBonus || 0) + increase;
-        addEventLog(`👶 Рождаемость выросла! +${increase} жителей`, true);
-        showNotification(`👶 Население увеличилось на ${increase}`, true);
-      }
-    });
-  }
-  
-  // Строительный бум — если есть деньги и дома
-  if (game.money > 30000 && totalHousesCount > 3) {
-    possibleEvents.push({
-      name: "🏗️ Строительный бум",
-      effect: () => {
-        let bonus = Math.floor(Math.random() * 20000) + 8000;
-        game.money += bonus;
-        addEventLog(`🏗️ Строительный бум! Город получил ${bonus}💰 на развитие`, true);
-        showNotification(`🏗️ +${bonus}💰 на строительство`, true);
-      }
-    });
-  }
-  
-  // Если нет подходящих событий — ничего не делаем
-  if (possibleEvents.length === 0) return;
-  
-  const event = possibleEvents[Math.floor(Math.random() * possibleEvents.length)];
-  event.effect();
-  updateUI();
-}
-
-// ========== ПРЕСТИЖ, СУНДУК, НАГРАДЫ ==========
-function prestige() {
-  if(game.cityStage < cityStages.length-1) { alert("Достигните Мегаполиса для престижа!"); return; }
-  if(confirm("Переродиться? Бонус +10% к доходу навсегда. Город сбросится.")) {
-    game.prestigeCount++;
-    game.prestigeBonus = 1 + game.prestigeCount*0.1;
-    game.money = START_MONEY * game.prestigeBonus;
-    game.districts = [];
-    createDistrict("Центральный");
-    game.currentDistrict = 0;
-    game.level = 1;
-    game.cityStage = 0;
-    game.lastChestTime = 0;
-    game.lastInvestorTime = 0;
-    game.eventLog = [];
-    game.upgrades = { income:0, discount:0, happiness:0, road_capacity:0, energy_efficiency:0, solar_panels:0 };
-    for(let id in achievementsDef) game.achievements[id] = false;
-    updateEcology();
-    addEventLog(`⭐ ПРЕСТИЖ ${game.prestigeCount}! Бонус x${game.prestigeBonus}`, true);
-    updateUI();
-    scheduleSave();
-  }
-}
-
-function openChest() {
-  let now = Date.now();
-  let cd = 10*60*1000;
-  if(now-(game.lastChestTime||0)<cd) { let left=Math.ceil((cd-(now-game.lastChestTime))/60000); alert(`Сундук через ~${left} мин`); return; }
-  game.lastChestTime = now;
-  let r = Math.random();
-  let reward = r<0.5 ? 5000 : r<0.75 ? 15000 : r<0.9 ? 50000 : 100000;
-  game.money += reward;
-  addEventLog(`🎁 СУНДУК: +${reward}💰`, true);
-  updateUI();
-  scheduleSave();
-}
-function updateChestTimer() {
-  let now=Date.now(), last=game.lastChestTime||0, cd=10*60*1000;
-  let left=Math.max(0, cd-(now-last));
-  let min=Math.floor(left/60000), sec=Math.floor((left%60000)/1000);
-  document.getElementById("chestTimer").innerText=left<=0?"Готово!":`Доступен через ${min}:${sec.toString().padStart(2,'0')}`;
-}
-
-function claimDailyReward() {
-  let now = Date.now();
-  let oneDay = 24*60*60*1000;
-  if(now - lastDailyClaim >= oneDay) {
-    game.money += DAILY_REWARD;
-    lastDailyClaim = now;
-    addEventLog(`📅 Ежедневная награда: +${DAILY_REWARD}💰`, true);
-    updateUI();
-    scheduleSave();
-  } else {
-    let left = Math.ceil((oneDay-(now-lastDailyClaim))/3600000);
-    alert(`Уже получено. Следующая через ~${left} ч.`);
-  }
-}
-
-function applyMigration() {
-  let attraction = (game.happiness-50)/50 - game.crimeRate/50 + (game.ecology-50)/50;
-  let unemp = 1 - getUnemploymentEffect();
-  attraction -= unemp*0.5;
-  if(attraction > 0.1) {
-    let migrants = Math.min(500, Math.floor(totalPopulation()*0.02*attraction));
-    if(migrants>0) addEventLog(`➕ Прибыло ${migrants} жителей`, false);
-  } else if(attraction < -0.1) {
-    let emigrants = Math.min(200, Math.floor(totalPopulation()*0.01*(-attraction)));
-    if(emigrants>0) addEventLog(`➖ Уехало ${emigrants} жителей`, false);
-  }
-}
-
-function checkAchievements() {
-  for(let id in achievementsDef) {
-    if(!game.achievements[id] && achievementsDef[id].cond()) {
-      game.achievements[id]=true;
-      game.money+=achievementsDef[id].reward;
-      addEventLog(`🏆 Достижение: ${achievementsDef[id].name} +${achievementsDef[id].reward}💰`, true);
     }
   }
-  updateUI();
-}
 
-function updateDistrictUI() {
-  const container = document.getElementById("districtsList");
-  if(!container) return;
-  if(game.districts.length === 0) {
-    container.innerHTML = "<div>Нет районов. Создайте первый!</div>";
-    return;
-  }
-  let html = "";
-  for(let i=0; i<game.districts.length; i++) {
-    const d = game.districts[i];
-    const pop = calcDistrictPopulation(d);
-    const totalBuild = Object.values(d.buildings).reduce((a,b)=>a+b,0);
-    const activeClass = (i === game.currentDistrict) ? "district-active" : "";
-    html += `<div class="district-card ${activeClass}">
-      <div><strong>${d.name}</strong> ${i===game.currentDistrict ? "✅ активный" : ""}</div>
-      <div>👥 ${pop} жит. | 😊 ${Math.floor(d.happiness)} | 🌿 ${Math.floor(d.ecology)}% | 🏗️ ${totalBuild} зд.</div>
-      <div class="district-buttons">
-        <button onclick="selectDistrict(${i})">🏙️ Управлять</button>
-      </div>
-    </div>`;
-  }
-  container.innerHTML = html;
-}
-
-// ========== UI ОБНОВЛЕНИЕ ==========
-function updateUI() {
-  document.getElementById("cityTitle").innerHTML = `🏘️ ${game.cityName || "Безымянный город"}`;
-  document.getElementById("money").innerText = Math.floor(game.money);
-  document.getElementById("people").innerText = totalPopulation();
-  document.getElementById("jobs").innerText = totalJobs();
-  document.getElementById("jobCapacity").innerText = totalJobs();
-  document.getElementById("happy").innerText = Math.floor(game.happiness);
-  document.getElementById("happinessMultDisplay").innerText = getHappinessMultiplier().toFixed(2);
-  document.getElementById("crimeRate").innerText = game.crimeRate.toFixed(1);
-  document.getElementById("crimePenaltyDisplay").innerText = game.crimeRate.toFixed(1);
-  document.getElementById("ecology").innerText = Math.floor(game.ecology);
-  let ecoPenalty = 1 - getEcologyPenalty();
-  document.getElementById("ecologyPenaltyDisplay").innerText = (ecoPenalty*100).toFixed(0);
-  document.getElementById("taxRate").innerText = game.taxRate;
-  document.getElementById("taxBonusDisplay").innerText = game.taxRate;
-  document.getElementById("incomePerTick").innerText = calcIncomePerTick().toFixed(1);
-  document.getElementById("devPoints").innerText = calcDevelopmentPoints();
-  document.getElementById("prestigeBonus").innerText = game.prestigeBonus.toFixed(2);
-  document.getElementById("stageMultiplierDisplay").innerText = `(x${cityStages[game.cityStage].multiplier.toFixed(1)} доход)`;
-  let roadCap=getRoadCapacity(), roadUsed=getUsedRoadCapacity();
-  document.getElementById("roadUsage").innerText=roadUsed;
-  document.getElementById("roadCapacity").innerText=roadCap;
-  let powSup=getPowerSupply(), powUse=getPowerUsage();
-  document.getElementById("powerUsage").innerText=powUse;
-  document.getElementById("powerSupply").innerText=powSup;
-  let eff=(getRoadEfficiency()*getPowerEfficiency()*100).toFixed(0);
-  document.getElementById("infraEfficiency").innerText=eff;
-
-  for(let t in { wooden_small:1, wooden_medium:1, wooden_large:1, brick_small:1, brick_medium:1, brick_large:1, multistory:1, store:1, road:1, power_station:1, school:1, factory:1, police:1, transport:1, tvtower:1, airport:1, bank:1, themepark:1 }) {
-    let price = getEffectivePrice(t);
-    let span = document.getElementById("price_"+t);
-    if(span) span.innerText = price;
-    let btn = document.getElementById("btn_"+t);
-    let cntSpan = document.getElementById("count_"+t);
-    if(btn) {
-      let unlocked = isBuildingUnlocked(t);
-      let canAff = game.money >= price;
-      if(t!=='road'&&t!=='power_station') {
-        let inf = canBuildWithInfra(t, getDistrictBuildingCount(t)+1);
-        btn.disabled = !(unlocked && canAff && inf.ok);
-      } else btn.disabled = !(unlocked && canAff);
+  function findClusters() {
+    const visited = Array.from({length: ROWS}, () => Array(COLS).fill(false));
+    const clusters = [];
+    for (let r = 0; r < ROWS; r++) {
+      for (let c = 0; c < COLS; c++) {
+        if (visited[r][c]) continue;
+        const sym = grid[r][c];
+        if (sym === config.scatterSymbol) continue;
+        const cluster = [];
+        const queue = [[r, c]];
+        visited[r][c] = true;
+        while (queue.length) {
+          const [rr, cc] = queue.shift();
+          cluster.push([rr, cc]);
+          for (const [dr, dc] of [[1,0],[-1,0],[0,1],[0,-1]]) {
+            const nr = rr + dr, nc = cc + dc;
+            if (nr >= 0 && nr < ROWS && nc >= 0 && nc < COLS && !visited[nr][nc] && grid[nr][nc] === sym) {
+              visited[nr][nc] = true;
+              queue.push([nr, nc]);
+            }
+          }
+        }
+        if (cluster.length >= config.minCluster) clusters.push({ symbol: sym, cells: cluster });
+      }
     }
-    if(cntSpan) cntSpan.innerText = `(построено: ${getDistrictBuildingCount(t)})`;
+    return clusters;
   }
 
-  document.getElementById("incomeMultiplierDisplay").innerText = getIncomeMultiplier().toFixed(2);
-  document.getElementById("incomeBonusLevel").innerText = game.upgrades.income;
-  let incCost=[1000,2000,4000,8000,16000][game.upgrades.income];
-  document.getElementById("incomeUpgradePrice").innerText = incCost||"MAX";
-  document.getElementById("btn_incomeUpgrade").disabled = !incCost||game.money<incCost;
-  document.getElementById("discountPercent").innerText = game.upgrades.discount*5;
-  let disCost=[2000,5000,10000][game.upgrades.discount];
-  document.getElementById("discountUpgradePrice").innerText = disCost||"MAX";
-  document.getElementById("btn_discountUpgrade").disabled = !disCost||game.money<disCost;
-  let hapCost=[1500,3000,6000][game.upgrades.happiness];
-  document.getElementById("happinessUpgradePrice").innerText = hapCost||"MAX";
-  document.getElementById("happinessBonusLevel").innerText = game.upgrades.happiness;
-  document.getElementById("btn_happinessUpgrade").disabled = !hapCost||game.money<hapCost;
-  document.getElementById("roadUpgradeLevel").innerText = game.upgrades.road_capacity;
-  document.getElementById("btn_roadUpgrade").disabled = game.upgrades.road_capacity>=1||game.money<2000;
-  document.getElementById("energyEfficiencyLevel").innerText = game.upgrades.energy_efficiency;
-  document.getElementById("btn_energyUpgrade").disabled = game.upgrades.energy_efficiency>=1||game.money<3000;
-  document.getElementById("solarPanelsLevel").innerText = game.upgrades.solar_panels;
-  document.getElementById("btn_solarUpgrade").disabled = game.upgrades.solar_panels>=1||game.money<5000;
-
-  let lvlInfo = getNextLevelInfo();
-  if(lvlInfo.maxLevelReached) { document.getElementById("levelProgressText").innerHTML="(MAX)"; document.getElementById("levelProgressFill").style.width="100%"; }
-  else { let pct = (lvlInfo.current/lvlInfo.needed)*100; document.getElementById("levelProgressText").innerHTML=`(${lvlInfo.current}/${lvlInfo.needed} ${lvlInfo.type==='wooden'?'домов':'очков'})`; document.getElementById("levelProgressFill").style.width=pct+"%"; }
-  document.getElementById("level").innerText = game.level;
-
-  let score = calcCityScore();
-  document.getElementById("cityScoreValue").innerText = score.toFixed(2);
-  let next = cityStages[game.cityStage+1];
-  if(next) { document.getElementById("cityScoreNext").innerText = next.scoreRequired.toFixed(2); let pct = (score/next.scoreRequired)*100; document.getElementById("stageScoreProgress").style.width=pct+"%"; document.getElementById("stageRequirements").innerHTML = `⭐ Нужно City Score: ${next.scoreRequired.toFixed(2)}`; }
-  else { document.getElementById("cityScoreNext").innerText="MAX"; document.getElementById("stageScoreProgress").style.width="100%"; document.getElementById("stageRequirements").innerHTML="✨ Максимальный этап!"; }
-  document.getElementById("cityStageName").innerText = cityStages[game.cityStage].name;
-
-  let achHtml = "";
-  for(let id in achievementsDef) achHtml += `<div class="achievement-item">${game.achievements[id]?"✅":"🔒"} ${achievementsDef[id].name} (+${achievementsDef[id].reward}💰)</div>`;
-  document.getElementById("achievementsList").innerHTML = achHtml;
-  let now = Date.now();
-  let oneDay = 24*60*60*1000;
-  let remaining = oneDay - (now - lastDailyClaim);
-  document.getElementById("dailyRewardDisplay").innerHTML = remaining<=0 ? "🎁 Готово к получению!" : `До следующей награды ~${Math.ceil(remaining/3600000)} ч.`;
-  updateChestTimer();
-  updateDistrictUI();
-}
-
-// ========== СОХРАНЕНИЕ ==========
-function saveGame() {
-  game.lastSaveTime = Date.now();
-  let toSave = {
-    money: game.money, happiness: game.happiness, taxRate: game.taxRate, crimeRate: game.crimeRate,
-    ecology: game.ecology, prestigeBonus: game.prestigeBonus, prestigeCount: game.prestigeCount,
-    cityName: game.cityName, districts: game.districts, currentDistrict: game.currentDistrict,
-    upgrades: game.upgrades, achievements: game.achievements, level: game.level, cityStage: game.cityStage,
-    lastSaveTime: game.lastSaveTime, lastChestTime: game.lastChestTime, lastInvestorTime: game.lastInvestorTime,
-    eventLog: game.eventLog, migrationBonus: game.migrationBonus
-  };
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(toSave));
-}
-let saveTimeout;
-function scheduleSave() { clearTimeout(saveTimeout); saveTimeout = setTimeout(saveGame, 1000); }
-function loadGame() {
-  let saved = localStorage.getItem(STORAGE_KEY);
-  if(saved) {
-    try {
-      let d = JSON.parse(saved);
-      for(let k in d) if(k!=='districts' && k!=='upgrades' && k!=='achievements') game[k] = d[k];
-      if(d.districts) game.districts = d.districts;
-      if(d.upgrades) Object.assign(game.upgrades, d.upgrades);
-      if(d.achievements) game.achievements = d.achievements;
-    } catch(e) {}
+  function countScatters() {
+    let n = 0;
+    for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) if (grid[r][c] === config.scatterSymbol) n++;
+    return n;
   }
-  if(!game.cityName) {
-    let name = prompt("Название вашего города:", "Новоград");
-    game.cityName = name ? name : "Безымянный город";
+
+  function payoutFor(symbol, count) {
+    const table = config.payouts[symbol];
+    if (!table) return 0;
+    const sorted = Object.entries(table).map(([k, v]) => [parseInt(k), v]).sort((a, b) => b[0] - a[0]);
+    for (const [min, val] of sorted) if (count >= min) return val;
+    return 0;
   }
-  if(!game.districts || game.districts.length === 0) {
-    createDistrict("Центральный");
-    game.currentDistrict = 0;
+
+  async function resolve() {
+    let totalWin = 0;
+    let iter = 0;
+    while (iter < 10) {
+      iter++;
+      const clusters = findClusters();
+      if (clusters.length === 0) break;
+      const winCells = new Set();
+      let iterWin = 0;
+      for (const cl of clusters) {
+        iterWin += payoutFor(cl.symbol, cl.cells.length) * currentBet;
+        for (const [r, c] of cl.cells) winCells.add(`${r},${c}`);
+      }
+      document.querySelectorAll('.slot-cell').forEach(el => {
+        if (winCells.has(`${el.dataset.r},${el.dataset.c}`)) el.classList.add('win');
+      });
+      await sleep(500);
+      for (const cl of clusters) for (const [r, c] of cl.cells) grid[r][c] = null;
+      // drop
+      for (let c = 0; c < COLS; c++) {
+        const col = [];
+        for (let r = ROWS - 1; r >= 0; r--) if (grid[r][c] !== null) col.push(grid[r][c]);
+        while (col.length < ROWS) col.push(randomSymbol());
+        for (let r = 0; r < ROWS; r++) grid[r][c] = col[ROWS - 1 - r];
+      }
+      totalWin += iterWin;
+      render();
+      await sleep(280);
+    }
+    return totalWin;
   }
-  if(!game.lastChestTime) game.lastChestTime = 0;
-  if(!game.lastInvestorTime) game.lastInvestorTime = 0;
-  if(!game.eventLog) game.eventLog = [];
-  if(!game.migrationBonus) game.migrationBonus = 0;
-  if(!game.upgrades) game.upgrades = { income:0, discount:0, happiness:0, road_capacity:0, energy_efficiency:0, solar_panels:0 };
-  processOfflineIncome();
-  updateCrime();
-  updateEcology();
-  checkLevelUp();
-  checkCityStage();
-  updateUI();
-  scheduleSave();
-}
-function processOfflineIncome() {
-  let now = Date.now();
-  let last = game.lastSaveTime;
-  if(!last||now-last<5000) return;
-  let sec = (now-last)/1000;
-  let ticks = Math.min(Math.floor(sec/3), 7*24*3600/3);
-  if(ticks<=0) return;
-  let inc = calcIncomePerTick();
-  let offline = inc * ticks;
-  game.money += offline;
-  if(offline>0) showNotification(`💤 Офлайн-доход: +${Math.floor(offline)}💰`, true);
-}
-function resetGame() {
-  if(confirm("Сбросить весь прогресс?")) { localStorage.removeItem(STORAGE_KEY); location.reload(); }
-}
-function setTaxRate(rate) { if(rate>=0&&rate<=30&&rate%5===0) { game.taxRate=rate; updateUI(); scheduleSave(); } }
-function initTaxButtons() {
-  let cont = document.getElementById("taxButtons");
-  cont.innerHTML = "";
-  for(let t of [0,5,10,15,20,25,30]) {
-    let btn = document.createElement("button");
-    btn.innerText = t+"%";
-    btn.onclick = () => setTaxRate(t);
-    if(game.taxRate === t) btn.style.background = "#ff9800";
-    cont.appendChild(btn);
+
+  async function spin() {
+    if (busy) return;
+    const bet = Math.max(1, parseInt(betInput.value) || 50);
+    if (!Wallet.sub(bet)) { infoEl.textContent = '❌ Недостаточно фишек'; infoEl.style.color = '#ff6666'; return; }
+    busy = true; currentBet = bet;
+    spinBtn.disabled = true;
+    infoEl.textContent = 'Крутим...'; infoEl.style.color = '#fff';
+
+    fill(); render();
+    await sleep(350);
+    let totalWin = await resolve();
+
+    const scatters = countScatters();
+    if (scatters >= 4) {
+      infoEl.textContent = `⚡ ${scatters} скаттеров! ${config.freeSpins} фриспинов!`;
+      await sleep(700);
+      for (let fs = 0; fs < config.freeSpins; fs++) {
+        fill(); render();
+        await sleep(300);
+        totalWin += await resolve();
+        infoEl.textContent = `Фриспин ${fs + 1}/${config.freeSpins} · выигрыш: ${Math.floor(totalWin)}`;
+      }
+    }
+
+    totalWin = Math.floor(totalWin);
+    if (totalWin > 0) {
+      Wallet.add(totalWin);
+      infoEl.textContent = `🎉 Выигрыш: ${totalWin} 🪙`;
+      infoEl.style.color = '#ffd700';
+    } else {
+      infoEl.textContent = `Проигрыш ${bet}`;
+      infoEl.style.color = '#ff6666';
+    }
+    busy = false;
+    spinBtn.disabled = false;
   }
+
+  spinBtn.addEventListener('click', spin);
+  fill(); render();
 }
 
-// ========== ТАЙМЕР ==========
-setInterval(()=>{
-  let inc = calcIncomePerTick();
-  if(totalPopulation()>0 || totalStores()>0) {
-    game.money += inc;
-    updateUI();
-    scheduleSave();
+function initOlympus() {
+  createSlotGame({
+    gridId: 'olympus-grid', infoId: 'olympus-info',
+    spinId: 'olympus-spin', betId: 'olympus-bet',
+    symbols: ['💎','🔥','⭐','🏺','👑','⚡'],
+    scatterSymbol: '⚡',
+    minCluster: 8, freeSpins: 10,
+    payouts: {
+      '💎': { 8: 2, 12: 5, 16: 20 },
+      '🔥': { 8: 1.5, 12: 3, 16: 10 },
+      '⭐': { 8: 1.2, 12: 2, 16: 8 },
+      '🏺': { 8: 1, 12: 1.5, 16: 5 },
+      '👑': { 8: 0.8, 12: 1.2, 16: 4 }
+    }
+  });
+}
+
+function initSweet() {
+  createSlotGame({
+    gridId: 'sweet-grid', infoId: 'sweet-info',
+    spinId: 'sweet-spin', betId: 'sweet-bet',
+    symbols: ['🍬','🍭','🍎','🍇','🍌','❤️'],
+    scatterSymbol: '❤️',
+    minCluster: 8, freeSpins: 10,
+    payouts: {
+      '🍬': { 8: 2, 12: 5, 16: 20 },
+      '🍭': { 8: 1.5, 12: 3, 16: 10 },
+      '🍎': { 8: 1.2, 12: 2, 16: 8 },
+      '🍇': { 8: 1, 12: 1.5, 16: 5 },
+      '🍌': { 8: 0.8, 12: 1.2, 16: 4 }
+    }
+  });
+}
+
+/* ============ CRAZY TIME ============ */
+function initCrazy() {
+  const canvas = document.getElementById('crazy-wheel');
+  const ctx = canvas.getContext('2d');
+  const info = document.getElementById('crazy-info');
+  const spinBtn = document.getElementById('crazy-spin');
+  const betInput = document.getElementById('crazy-bet');
+
+  // 12 секторов с весами
+  const SEGMENTS = [
+    { label: '0', mult: 0, color: '#333' },
+    { label: '1', mult: 1, color: '#3498db' },
+    { label: '0', mult: 0, color: '#333' },
+    { label: '2', mult: 2, color: '#2ecc71' },
+    { label: '1', mult: 1, color: '#3498db' },
+    { label: '0', mult: 0, color: '#333' },
+    { label: 'BONUS', mult: 0, bonus: true, color: '#f39c12' },
+    { label: '1', mult: 1, color: '#3498db' },
+    { label: '0', mult: 0, color: '#333' },
+    { label: '2', mult: 2, color: '#2ecc71' },
+    { label: '1', mult: 1, color: '#3498db' },
+    { label: '0', mult: 0, color: '#333' }
+  ];
+
+  let rotation = 0, spinning = false;
+
+  function draw() {
+    const cx = canvas.width / 2, cy = canvas.height / 2, r = 180;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    const n = SEGMENTS.length;
+    const arc = Math.PI * 2 / n;
+
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.rotate(rotation);
+    for (let i = 0; i < n; i++) {
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.arc(0, 0, r, i * arc, (i + 1) * arc);
+      ctx.closePath();
+      ctx.fillStyle = SEGMENTS[i].color;
+      ctx.fill();
+      ctx.strokeStyle = '#000';
+      ctx.stroke();
+      ctx.save();
+      ctx.rotate(i * arc + arc / 2);
+      ctx.textAlign = 'center';
+      ctx.fillStyle = '#fff';
+      ctx.font = 'bold 15px system-ui';
+      ctx.fillText(SEGMENTS[i].label, r * 0.68, 5);
+      ctx.restore();
+    }
+    ctx.restore();
+
+    // указатель
+    ctx.fillStyle = '#ffd700';
+    ctx.beginPath();
+    ctx.moveTo(cx - 16, 5);
+    ctx.lineTo(cx + 16, 5);
+    ctx.lineTo(cx, 42);
+    ctx.closePath();
+    ctx.fill();
+
+    // центр
+    ctx.beginPath();
+    ctx.arc(cx, cy, 30, 0, Math.PI * 2);
+    ctx.fillStyle = '#ffd700';
+    ctx.fill();
+    ctx.fillStyle = '#000';
+    ctx.font = 'bold 13px system-ui';
+    ctx.textAlign = 'center';
+    ctx.fillText('SPIN', cx, cy + 5);
+    ctx.textAlign = 'start';
   }
-  adjustHappinessTowardsTarget();
-  let penalty = 0;
-  if(getUsedRoadCapacity() > getRoadCapacity()) penalty += 2;
-  if(getPowerUsage() > getPowerSupply()) penalty += 3;
-  if(penalty>0) for(let d of game.districts) d.happiness = Math.max(0, d.happiness - penalty);
-  updateCrime();
-  updateEcology();
-  checkCityStage();
-  checkAchievements();
-  applyMigration();
-  randomEvent();
-  tryInvokeInvestor(); // вызов инвестора по заслугам
-  updateUI();
-}, 3000);
 
-window.build = build;
-window.buildMax = buildMax;
-window.buyUpgrade = buyUpgrade;
-window.buyInfraUpgrade = buyInfraUpgrade;
-window.openChest = openChest;
-window.claimDailyReward = claimDailyReward;
-window.prestige = prestige;
-window.resetGame = resetGame;
-window.createDistrict = createDistrict;
-window.selectDistrict = selectDistrict;
+  function spin() {
+    if (spinning) return;
+    const bet = Math.max(1, parseInt(betInput.value) || 50);
+    if (!Wallet.sub(bet)) { info.textContent = '❌ Мало фишек'; info.style.color = '#ff6666'; return; }
+    spinning = true;
+    spinBtn.disabled = true;
+    info.textContent = '🎡 Крутим...'; info.style.color = '#fff';
 
-loadGame();
-initTaxButtons();
+    const extra = Math.PI * 2 * (5 + Math.random() * 3) + Math.random() * Math.PI * 2;
+    const start = rotation;
+    const dur = 3200;
+    const t0 = performance.now();
+
+    function animate() {
+      const t = Math.min(1, (performance.now() - t0) / dur);
+      const ease = 1 - Math.pow(1 - t, 3);
+      rotation = start + extra * ease;
+      draw();
+      if (t < 1) requestAnimationFrame(animate);
+      else finish(bet);
+    }
+    requestAnimationFrame(animate);
+  }
+
+  function finish(bet) {
+    const n = SEGMENTS.length;
+    const arc = Math.PI * 2 / n;
+    let local = -Math.PI / 2 - rotation;
+    local = ((local % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2);
+    const idx = Math.floor(local / arc) % n;
+    const seg = SEGMENTS[idx];
+
+    if (seg.bonus) {
+      const opts = [5, 10, 15, 20];
+      const m = opts[rand(opts.length)];
+      const win = bet * m;
+      Wallet.add(win);
+      info.textContent = `🎁 BONUS ×${m} — выигрыш ${win}!`;
+      info.style.color = '#ffd700';
+    } else if (seg.mult === 0) {
+      info.textContent = `😢 Выпал сектор «0» — проигрыш ${bet}`;
+      info.style.color = '#ff6666';
+    } else if (seg.mult === 1) {
+      Wallet.add(bet);
+      info.textContent = `↩️ Сектор «1» — вернул ставку ${bet}`;
+      info.style.color = '#fff';
+    } else {
+      const win = bet * seg.mult;
+      Wallet.add(win);
+      info.textContent = `🎉 Сектор «${seg.mult}» — выигрыш ${win}!`;
+      info.style.color = '#ffd700';
+    }
+    spinning = false;
+    spinBtn.disabled = false;
+    setTimeout(() => { info.style.color = '#ffd700'; }, 3000);
+  }
+
+  spinBtn.addEventListener('click', spin);
+  draw();
+}
 </script>
 </body>
 </html>

@@ -2,781 +2,564 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>🎰 Виртуальное Казино</title>
+<title>МКЭ-редактор: эпюры Q и M</title>
 <style>
-* { box-sizing: border-box; margin: 0; padding: 0; }
-body {
-  font-family: system-ui, -apple-system, sans-serif;
-  background: linear-gradient(135deg, #1a1a2e, #16213e);
-  color: #eee; min-height: 100vh; overflow-x: hidden;
-}
-header {
-  background: rgba(0,0,0,0.6); padding: 12px 20px;
-  display: flex; justify-content: space-between; align-items: center;
-  border-bottom: 2px solid #ffd700; position: sticky; top: 0; z-index: 10;
-}
-header h1 { font-size: 18px; color: #ffd700; }
-.header-right { display: flex; gap: 10px; align-items: center; }
-.balance { background: #2a2a4e; padding: 6px 14px; border-radius: 20px; font-weight: bold; }
-.balance::before { content: '🪙 '; }
-.daily-btn {
-  background: #ffd700; border: none; padding: 6px 14px; border-radius: 6px;
-  font-weight: bold; font-size: 12px; cursor: pointer;
-}
-.screen { padding: 20px; max-width: 900px; margin: 0 auto; }
-.hidden { display: none !important; }
-.alert {
-  background: #3a1a1a; border-left: 3px solid #ff4444; padding: 8px 12px;
-  margin: 10px auto; font-size: 12px; color: #ffaaaa; border-radius: 4px;
-  max-width: 900px;
-}
-.game-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 15px; margin-top: 20px; }
-.game-card {
-  background: linear-gradient(135deg, #2a2a4e, #3a3a5e); border-radius: 12px;
-  padding: 20px; cursor: pointer; transition: transform .2s, box-shadow .2s;
-  border: 2px solid transparent; text-align: center;
-}
-.game-card:hover { transform: translateY(-4px); box-shadow: 0 8px 20px rgba(255,215,0,0.25); border-color: #ffd700; }
-.game-card .icon { font-size: 48px; display: block; margin-bottom: 10px; }
-.game-card h3 { font-size: 15px; color: #ffd700; margin-bottom: 6px; }
-.game-card p { font-size: 12px; color: #aaa; }
-.back-btn {
-  background: #444; border: none; color: white; padding: 8px 16px; border-radius: 6px;
-  cursor: pointer; margin-bottom: 20px; font-size: 14px;
-}
-.back-btn:hover { background: #555; }
-button { font-family: inherit; cursor: pointer; }
-.btn {
-  background: linear-gradient(135deg, #ffd700, #ffb700); border: none; color: #000;
-  padding: 10px 20px; border-radius: 6px; font-weight: bold; font-size: 14px;
-  transition: opacity .2s;
-}
-.btn:hover { opacity: 0.9; }
-.btn:disabled { opacity: 0.4; cursor: not-allowed; }
-.btn-red { background: #ff4455; color: white; }
-.controls { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin: 15px 0; }
-.controls input {
-  background: #2a2a4e; border: 1px solid #444; color: #fff; padding: 8px 12px;
-  border-radius: 6px; width: 110px; font-size: 14px;
-}
-#crash-canvas { background: #0a0a1a; border-radius: 8px; display: block; margin: 10px auto; max-width: 100%; }
-.crash-info { text-align: center; font-size: 22px; font-weight: bold; color: #ffd700; min-height: 32px; }
-/* Roulette */
-.roulette-numbers { display: grid; grid-template-columns: repeat(13, 1fr); gap: 4px; margin: 15px 0; }
-.rn {
-  aspect-ratio: 1; display: flex; align-items: center; justify-content: center;
-  background: #2a2a4e; border-radius: 4px; font-size: 10px; cursor: pointer;
-  border: 2px solid transparent; position: relative; user-select: none;
-}
-.rn.red { background: #8b1a1a; }
-.rn.black { background: #111; }
-.rn.green { background: #1a6b1a; }
-.rn.mult::after { content: '⚡'; position: absolute; top: 0; right: 2px; font-size: 9px; }
-.rn.selected { border-color: #ffd700; box-shadow: 0 0 8px #ffd700; }
-.roulette-bet-types { display: flex; gap: 8px; margin: 10px 0; flex-wrap: wrap; }
-.rbt {
-  padding: 8px 16px; border-radius: 6px; border: 2px solid transparent;
-  cursor: pointer; font-weight: bold; font-size: 13px; user-select: none;
-}
-.rbt.selected { border-color: #ffd700; box-shadow: 0 0 8px #ffd700; }
-.result-display { font-size: 28px; text-align: center; font-weight: bold; min-height: 46px; padding: 8px; }
-/* Slots */
-.slot-grid {
-  display: grid; grid-template-columns: repeat(6, 1fr); gap: 4px;
-  max-width: 400px; margin: 15px auto; background: #0a0a1a; padding: 8px; border-radius: 8px;
-}
-.slot-cell {
-  aspect-ratio: 1; background: #1a1a3e; border-radius: 4px;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 24px; transition: background .3s, transform .2s;
-}
-.slot-cell.win { background: #ffd700; transform: scale(1.08); box-shadow: 0 0 12px #ffd700; }
-#crazy-wheel { display: block; margin: 10px auto; max-width: 100%; }
+  body { font-family: 'Segoe UI', Arial, sans-serif; margin: 0; background: #f5f7fa; color: #333; }
+  .app { display: grid; grid-template-columns: 340px 1fr; gap: 16px; padding: 16px; max-width: 1600px; margin: 0 auto; }
+  .panel { background: #fff; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,.08); padding: 16px; }
+  .panel h2 { margin: 0 0 10px; font-size: 17px; border-bottom: 2px solid #1e88e5; padding-bottom: 8px; }
+  .panel h3 { font-size: 14px; margin: 14px 0 6px; color: #555; }
+  .field { display: flex; flex-direction: column; margin-bottom: 6px; }
+  .field label { font-size: 11px; color: #666; margin-bottom: 2px; }
+  .field input, .field select { padding: 5px 7px; border: 1px solid #ccc; border-radius: 6px; font-size: 13px; }
+  .row { display: flex; gap: 6px; }
+  .row .field { flex: 1; }
+  button { background: #1e88e5; color: #fff; border: none; padding: 7px 12px; border-radius: 6px; cursor: pointer; font-size: 13px; }
+  button:hover { background: #1565c0; }
+  button.danger { background: #e53935; }
+  button.danger:hover { background: #c62828; }
+  canvas { width: 100%; height: auto; display: block; border: 1px solid #ddd; border-radius: 8px; background: #fafafa; }
+  .report { background: #e3f2fd; padding: 12px; border-radius: 8px; margin-top: 12px; font-size: 12px; white-space: pre-wrap; font-family: monospace; }
+  .err { background: #ffebee; color: #b71c1c; padding: 10px; border-radius: 8px; margin-top: 8px; font-size: 13px; }
+  .hint { font-size: 11px; color: #888; margin-top: 4px; }
 </style>
 </head>
 <body>
 
-<header>
-  <h1>🎰 Виртуальное Казино</h1>
-  <div class="header-right">
-    <button class="daily-btn" id="daily-btn">🎁 Бонус</button>
-    <div class="balance" id="balance">1000</div>
-  </div>
-</header>
+<div class="app">
+  <div class="panel">
+    <h2>Модель</h2>
 
-<div class="alert">⚠️ 18+ Развлекательный прототип. Игра на виртуальные фишки. Реальные деньги не используются.</div>
-
-<!-- LOBBY -->
-<div id="lobby" class="screen">
-  <h2 style="color:#ffd700;margin-bottom:8px;">Выбери игру</h2>
-  <p style="color:#aaa;font-size:13px;">Топ-5 самых популярных форматов казино-игр 2025–2026</p>
-  <div class="game-grid">
-    <div class="game-card" data-game="crash">
-      <span class="icon">✈️</span>
-      <h3>Crash / Aviator</h3>
-      <p>Растущий коэффициент</p>
+    <h3>🔵 Узлы</h3>
+    <div class="row">
+      <div class="field"><label>X, м</label><input id="nodeX" type="number" value="0" step="0.1"></div>
+      <div class="field"><label>Y, м</label><input id="nodeY" type="number" value="0" step="0.1"></div>
     </div>
-    <div class="game-card" data-game="roulette">
-      <span class="icon">🎡</span>
-      <h3>Lightning Roulette</h3>
-      <p>Рулетка с множителями</p>
+    <button id="addNode">Добавить узел</button>
+
+    <h3>🟢 Стержни</h3>
+    <div class="row">
+      <div class="field"><label>От узла</label><input id="rodStart" type="number" value="1" min="1"></div>
+      <div class="field"><label>До узла</label><input id="rodEnd" type="number" value="2" min="1"></div>
     </div>
-    <div class="game-card" data-game="olympus">
-      <span class="icon">⚡</span>
-      <h3>Gates of Olympus</h3>
-      <p>Слот 6×5 · кластеры</p>
+    <div class="field"><label>EJ (×10⁴ кН·м²)</label><input id="rodEJ" type="number" value="1" step="0.1"></div>
+    <button id="addRod">Добавить стержень</button>
+
+    <h3>🟠 Опоры</h3>
+    <div class="field"><label>Узел</label><input id="supNode" type="number" value="1" min="1"></div>
+    <div class="field"><label>Тип</label>
+      <select id="supType">
+        <option value="fixed">Жёсткая заделка</option>
+        <option value="hinge2" selected>Шарнирно-неподвижная</option>
+        <option value="hinge1">Шарнирно-подвижная (верт.)</option>
+      </select>
     </div>
-    <div class="game-card" data-game="sweet">
-      <span class="icon">🍬</span>
-      <h3>Sweet Bonanza</h3>
-      <p>Слот с tumble</p>
+    <button id="addSup">Добавить опору</button>
+
+    <h3>🔴 Нагрузки</h3>
+    <div class="field"><label>Тип</label>
+      <select id="loadType">
+        <option value="force">Сосредоточенная сила</option>
+        <option value="moment">Момент</option>
+        <option value="distributed">Распределённая</option>
+      </select>
     </div>
-    <div class="game-card" data-game="crazy">
-      <span class="icon">🎪</span>
-      <h3>Crazy Time</h3>
-      <p>Колесо с бонусами</p>
+    <div class="field"><label>Узел (для силы/момента)</label><input id="loadNode" type="number" value="2" min="1"></div>
+    <div class="field"><label>Стержень (для распр.)</label><input id="loadRod" type="number" value="1" min="1"></div>
+    <div class="row">
+      <div class="field"><label>Величина</label><input id="loadVal" type="number" value="10" step="0.1"></div>
+      <div class="field"><label>Угол, °</label><input id="loadAng" type="number" value="-90" step="1"></div>
+    </div>
+    <div class="hint">Угол: 0° = +X, 90° = +Y, -90° = вниз</div>
+    <button id="addLoad">Добавить нагрузку</button>
+
+    <div style="margin-top:16px; display:flex; gap:8px;">
+      <button id="calc" style="flex:1; font-weight:bold;">📊 Рассчитать</button>
+      <button id="clear" class="danger">🗑️</button>
     </div>
   </div>
-</div>
 
-<!-- CRASH -->
-<div id="game-crash" class="screen hidden">
-  <button class="back-btn" onclick="goHome()">← Назад</button>
-  <h2 style="color:#ffd700;">✈️ Aviator (Crash)</h2>
-  <canvas id="crash-canvas" width="600" height="300"></canvas>
-  <div class="crash-info" id="crash-info">Сделай ставку и нажми «Взлёт»</div>
-  <div class="controls">
-    <input type="number" id="crash-bet" value="50" min="1">
-    <button class="btn" id="crash-play">✈️ Взлёт</button>
-    <button class="btn btn-red hidden" id="crash-cashout">💰 Забрать</button>
-  </div>
-</div>
-
-<!-- ROULETTE -->
-<div id="game-roulette" class="screen hidden">
-  <button class="back-btn" onclick="goHome()">← Назад</button>
-  <h2 style="color:#ffd700;">🎡 Lightning Roulette</h2>
-  <div class="result-display" id="roulette-result">Выбери ставку и крути</div>
-  <div class="roulette-numbers" id="roulette-grid"></div>
-  <div class="roulette-bet-types">
-    <div class="rbt" style="background:#8b1a1a;" data-bet="red">Красное ×2</div>
-    <div class="rbt" style="background:#111;border:1px solid #555;" data-bet="black">Чёрное ×2</div>
-    <div class="rbt" style="background:#2a4a2a;" data-bet="even">Чёт ×2</div>
-    <div class="rbt" style="background:#2a2a4a;" data-bet="odd">Нечет ×2</div>
-  </div>
-  <div class="controls">
-    <input type="number" id="roulette-bet" value="50" min="1">
-    <button class="btn" id="roulette-spin">🎡 Крутить</button>
-  </div>
-</div>
-
-<!-- OLYMPUS -->
-<div id="game-olympus" class="screen hidden">
-  <button class="back-btn" onclick="goHome()">← Назад</button>
-  <h2 style="color:#ffd700;">⚡ Gates of Olympus</h2>
-  <div class="slot-grid" id="olympus-grid"></div>
-  <div class="crash-info" id="olympus-info">Нажми «Крутить»</div>
-  <div class="controls">
-    <input type="number" id="olympus-bet" value="50" min="1">
-    <button class="btn" id="olympus-spin">🎰 Крутить</button>
-  </div>
-</div>
-
-<!-- SWEET -->
-<div id="game-sweet" class="screen hidden">
-  <button class="back-btn" onclick="goHome()">← Назад</button>
-  <h2 style="color:#ff69b4;">🍬 Sweet Bonanza</h2>
-  <div class="slot-grid" id="sweet-grid"></div>
-  <div class="crash-info" id="sweet-info">Нажми «Крутить»</div>
-  <div class="controls">
-    <input type="number" id="sweet-bet" value="50" min="1">
-    <button class="btn" id="sweet-spin">🎰 Крутить</button>
-  </div>
-</div>
-
-<!-- CRAZY TIME -->
-<div id="game-crazy" class="screen hidden">
-  <button class="back-btn" onclick="goHome()">← Назад</button>
-  <h2 style="color:#ff69b4;">🎪 Crazy Time</h2>
-  <canvas id="crazy-wheel" width="400" height="400"></canvas>
-  <div class="crash-info" id="crazy-info">Крути колесо</div>
-  <div class="controls">
-    <input type="number" id="crazy-bet" value="50" min="1">
-    <button class="btn" id="crazy-spin">🎡 Крутить</button>
+  <div class="panel">
+    <h2>Результаты</h2>
+    <canvas id="canvas" width="1100" height="900"></canvas>
+    <div id="err" class="err" style="display:none;"></div>
+    <div id="report" class="report">Добавьте узлы, стержни, опоры и нагрузки, затем нажмите «Рассчитать».</div>
   </div>
 </div>
 
 <script>
-/* ============ УТИЛИТЫ ============ */
-const sleep = ms => new Promise(r => setTimeout(r, ms));
-const rand = n => Math.floor(Math.random() * n);
+/* ============ МАТРИЦЫ ============ */
+const zeros = (n,m) => Array.from({length:n}, () => new Array(m).fill(0));
+function matmul(A,B){
+  const n=A.length, m=B[0].length, p=B.length, C=zeros(n,m);
+  for(let i=0;i<n;i++)for(let j=0;j<m;j++)for(let k=0;k<p;k++)C[i][j]+=A[i][k]*B[k][j];
+  return C;
+}
+const transpose = A => A[0].map((_,j)=>A.map(r=>r[j]));
+function solve(A,b){
+  const n=A.length, M=A.map((r,i)=>[...r,b[i]]);
+  for(let c=0;c<n;c++){
+    let p=c;
+    for(let r=c+1;r<n;r++)if(Math.abs(M[r][c])>Math.abs(M[p][c]))p=r;
+    if(Math.abs(M[p][c])<1e-14)throw new Error('Матрица вырождена — проверьте опоры');
+    [M[c],M[p]]=[M[p],M[c]];
+    for(let r=0;r<n;r++){
+      if(r===c)continue;
+      const f=M[r][c]/M[c][c];
+      for(let k=c;k<=n;k++)M[r][k]-=f*M[c][k];
+    }
+  }
+  return M.map((r,i)=>r[n]/r[i]);
+}
 
-/* ============ КОШЕЛЁК ============ */
-const Wallet = {
-  KEY: 'vc_balance',
-  get() { return parseInt(localStorage.getItem(this.KEY) || '1000'); },
-  set(v) {
-    v = Math.max(0, Math.floor(v));
-    localStorage.setItem(this.KEY, v);
-    document.getElementById('balance').textContent = v;
-  },
-  add(v) { this.set(this.get() + v); },
-  sub(v) { if (this.get() < v) return false; this.set(this.get() - v); return true; }
+/* ============ МОДЕЛЬ ============ */
+const model = { nodes:[], rods:[], supports:[], loads:[] };
+let nextNode=1, nextRod=1;
+
+/* ============ МКЭ ============ */
+function analyze(){
+  const nN = model.nodes.length, nD = nN*3;
+  if(nN < 2 || model.rods.length === 0) return {error:'Нужны минимум 2 узла и 1 стержень'};
+  
+  const K = zeros(nD, nD);
+  const F = new Array(nD).fill(0);
+  const elemInfo = [];
+  
+  for(const rod of model.rods){
+    const n1 = model.nodes.find(n=>n.id===rod.start);
+    const n2 = model.nodes.find(n=>n.id===rod.end);
+    if(!n1 || !n2) return {error:`Стержень ${rod.id}: узел не найден`};
+    const dx = n2.x - n1.x, dy = n2.y - n1.y;
+    const L = Math.hypot(dx,dy);
+    if(L < 1e-9) return {error:`Стержень ${rod.id}: нулевая длина`};
+    const c = dx/L, s = dy/L;
+    
+    const EI = rod.EJ * 1e4;
+    const EA = Math.max(EI * 100, 1e5);
+    
+    const kL = [
+      [EA/L, 0, 0, -EA/L, 0, 0],
+      [0, 12*EI/L**3, 6*EI/L**2, 0, -12*EI/L**3, 6*EI/L**2],
+      [0, 6*EI/L**2, 4*EI/L, 0, -6*EI/L**2, 2*EI/L],
+      [-EA/L, 0, 0, EA/L, 0, 0],
+      [0, -12*EI/L**3, -6*EI/L**2, 0, 12*EI/L**3, -6*EI/L**2],
+      [0, 6*EI/L**2, 2*EI/L, 0, -6*EI/L**2, 4*EI/L]
+    ];
+    const T = [
+      [c, s, 0, 0, 0, 0],
+      [-s, c, 0, 0, 0, 0],
+      [0, 0, 1, 0, 0, 0],
+      [0, 0, 0, c, s, 0],
+      [0, 0, 0, -s, c, 0],
+      [0, 0, 0, 0, 0, 1]
+    ];
+    const kG = matmul(matmul(transpose(T), kL), T);
+    const idx = [ (rod.start-1)*3, (rod.start-1)*3+1, (rod.start-1)*3+2,
+                  (rod.end-1)*3, (rod.end-1)*3+1, (rod.end-1)*3+2 ];
+    for(let i=0;i<6;i++)for(let j=0;j<6;j++) K[idx[i]][idx[j]] += kG[i][j];
+    
+    // Распределённая нагрузка на стержень
+    const fEqL = [0,0,0,0,0,0];
+    let qLocalY = 0;
+    for(const ld of model.loads){
+      if(ld.type !== 'distributed' || ld.rodId !== rod.id) continue;
+      const th = ld.angle * Math.PI/180;
+      const qgx = ld.value * Math.cos(th);
+      const qgy = ld.value * Math.sin(th);
+      const qlx = qgx*c + qgy*s;
+      const qly = -qgx*s + qgy*c;
+      qLocalY += qly;
+      fEqL[0] += qlx*L/2;
+      fEqL[1] += qly*L/2;
+      fEqL[2] += qly*L**2/12;
+      fEqL[3] += qlx*L/2;
+      fEqL[4] += qly*L/2;
+      fEqL[5] += -qly*L**2/12;
+    }
+    const fEqG = matmul(transpose(T), fEqL.map(x=>[x]));
+    for(let i=0;i<6;i++) F[idx[i]] += fEqG[i][0];
+    
+    elemInfo.push({rod, n1, n2, L, c, s, kL, T, idx, fEqL, qLocalY});
+  }
+  
+  // Сосредоточенные нагрузки
+  for(const ld of model.loads){
+    if(ld.type === 'force' && ld.nodeId){
+      const th = ld.angle * Math.PI/180;
+      const i = (ld.nodeId-1)*3;
+      F[i] += ld.value * Math.cos(th);
+      F[i+1] += ld.value * Math.sin(th);
+    } else if(ld.type === 'moment' && ld.nodeId){
+      const i = (ld.nodeId-1)*3 + 2;
+      F[i] += ld.value;
+    }
+  }
+  
+  // Граничные условия
+  const con = new Set();
+  for(const s of model.supports){
+    const i = (s.nodeId-1)*3;
+    if(!model.nodes.find(n=>n.id===s.nodeId)) continue;
+    if(s.type==='fixed'){ con.add(i); con.add(i+1); con.add(i+2); }
+    else if(s.type==='hinge2'){ con.add(i); con.add(i+1); }
+    else if(s.type==='hinge1'){ con.add(i+1); }
+  }
+  
+  const free = [], cons = [];
+  for(let i=0;i<nD;i++) (con.has(i) ? cons : free).push(i);
+  if(free.length === 0) return {error:'Все степени свободы закреплены'};
+  
+  let uf;
+  try { uf = solve(free.map(i=>free.map(j=>K[i][j])), free.map(i=>F[i])); }
+  catch(e){ return {error: e.message}; }
+  
+  const u = new Array(nD).fill(0);
+  free.forEach((d,i)=>u[d]=uf[i]);
+  
+  const Ku = matmul(K, u.map(x=>[x])).map(r=>r[0]);
+  const R = Ku.map((v,i)=>v-F[i]);
+  
+  // Восстановление усилий в стержнях
+  const results = elemInfo.map(ei => {
+    const {rod,n1,n2,L,c,s,kL,T,idx,fEqL,qLocalY} = ei;
+    const uL = T.map(row => row.reduce((sm,co,j)=>sm+co*u[idx[j]],0));
+    const fL = kL.map((row,i) => row.reduce((sm,co,j)=>sm+co*uL[j],0) - fEqL[i]);
+    
+    const NS = 21, samples = [];
+    for(let i=0;i<NS;i++){
+      const t = i/(NS-1), pos = t*L;
+      samples.push({
+        t, s: pos,
+        N: -fL[0],
+        V: -fL[1] - qLocalY*pos,
+        M: fL[1]*pos - fL[2] + qLocalY*pos*pos/2
+      });
+    }
+    return {rod,n1,n2,L,c,s,fL,uL,samples,qLocalY};
+  });
+  
+  return {u, R, results, free, cons};
+}
+
+/* ============ ОТРИСОВКА ============ */
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+let lastResult = null;
+
+function render(){
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  const subH = canvas.height / 3;
+  
+  drawView(0, 0, canvas.width, subH, 'structure');
+  drawView(0, subH, canvas.width, subH, 'Q');
+  drawView(0, 2*subH, canvas.width, subH, 'M');
+}
+
+function drawView(x0, y0, w, h, mode){
+  ctx.save();
+  ctx.beginPath(); ctx.rect(x0, y0, w, h); ctx.clip();
+  
+  // Заголовок
+  ctx.fillStyle = '#333'; ctx.font = 'bold 13px Arial';
+  const titles = { structure:'Расчётная схема', Q:'Эпюра Q, кН', M:'Эпюра M, кН·м' };
+  ctx.fillText(titles[mode], x0+12, y0+18);
+  
+  if(model.nodes.length === 0){ ctx.restore(); return; }
+  
+  const pad = 60;
+  const xs = model.nodes.map(n=>n.x), ys = model.nodes.map(n=>n.y);
+  const minX = Math.min(...xs), maxX = Math.max(...xs);
+  const minY = Math.min(...ys), maxY = Math.max(...ys);
+  const wR = maxX-minX || 1, hR = maxY-minY || 1;
+  const scale = Math.min((w-2*pad)/wR, (h-2*pad)/hR);
+  const cx = x0 + w/2, cy = y0 + h/2;
+  const cxD = (minX+maxX)/2, cyD = (minY+maxY)/2;
+  const toPx = (x,y) => ({ px: cx + (x-cxD)*scale, py: cy - (y-cyD)*scale });
+  
+  // Стержни
+  for(const rod of model.rods){
+    const n1 = model.nodes.find(n=>n.id===rod.start);
+    const n2 = model.nodes.find(n=>n.id===rod.end);
+    if(!n1||!n2) continue;
+    const p1 = toPx(n1.x,n1.y), p2 = toPx(n2.x,n2.y);
+    ctx.strokeStyle = mode==='structure' ? '#2e7d32' : '#ccc';
+    ctx.lineWidth = mode==='structure' ? 3 : 1;
+    ctx.beginPath(); ctx.moveTo(p1.px,p1.py); ctx.lineTo(p2.px,p2.py); ctx.stroke();
+  }
+  
+  // Эпюры
+  if((mode==='Q' || mode==='M') && lastResult && !lastResult.error){
+    let maxVal = 0;
+    for(const r of lastResult.results) for(const s of r.samples){
+      const v = mode==='Q' ? s.V : s.M;
+      maxVal = Math.max(maxVal, Math.abs(v));
+    }
+    maxVal = maxVal || 1;
+    const vScale = 55 / maxVal;
+    
+    for(const r of lastResult.results){
+      const {n1,n2,samples} = r;
+      const p1 = toPx(n1.x,n1.y), p2 = toPx(n2.x,n2.y);
+      const dx = p2.px-p1.px, dy = p2.py-p1.py;
+      const len = Math.hypot(dx,dy) || 1;
+      const ux = dx/len, uy = dy/len;
+      const perpX = uy, perpY = -ux;
+      
+      const pts = samples.map(sm => {
+        const bx = p1.px + ux*(sm.t*len);
+        const by = p1.py + uy*(sm.t*len);
+        const val = mode==='Q' ? sm.V : -sm.M;
+        return { bx, by, dx: bx + perpX*val*vScale, dy: by + perpY*val*vScale };
+      });
+      
+      ctx.fillStyle = mode==='Q' ? 'rgba(30,136,229,0.25)' : 'rgba(229,57,53,0.25)';
+      ctx.beginPath();
+      ctx.moveTo(pts[0].bx, pts[0].by);
+      pts.forEach(p => ctx.lineTo(p.dx, p.dy));
+      ctx.lineTo(pts[pts.length-1].bx, pts[pts.length-1].by);
+      ctx.closePath(); ctx.fill();
+      
+      ctx.strokeStyle = mode==='Q' ? '#1e88e5' : '#e53935';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      pts.forEach((p,i) => i===0 ? ctx.moveTo(p.dx,p.dy) : ctx.lineTo(p.dx,p.dy));
+      ctx.stroke();
+    }
+  }
+  
+  // Узлы
+  for(const n of model.nodes){
+    const p = toPx(n.x, n.y);
+    ctx.fillStyle = '#1e88e5';
+    ctx.beginPath(); ctx.arc(p.px,p.py,4,0,Math.PI*2); ctx.fill();
+    if(mode==='structure'){
+      ctx.fillStyle = '#000'; ctx.font = '11px Arial';
+      ctx.fillText(n.id, p.px+7, p.py-7);
+    }
+  }
+  
+  // Опоры
+  for(const s of model.supports){
+    const n = model.nodes.find(n=>n.id===s.nodeId); if(!n) continue;
+    const p = toPx(n.x,n.y);
+    ctx.fillStyle = '#ff9800';
+    if(s.type==='fixed'){
+      ctx.fillRect(p.px-12,p.py+8,24,6);
+      ctx.strokeStyle = '#ff9800'; ctx.lineWidth = 1;
+      for(let i=-10;i<=10;i+=4){
+        ctx.beginPath(); ctx.moveTo(p.px+i,p.py+14); ctx.lineTo(p.px+i-4,p.py+20); ctx.stroke();
+      }
+    } else if(s.type==='hinge2'){
+      ctx.beginPath(); ctx.moveTo(p.px,p.py); ctx.lineTo(p.px-10,p.py+14); ctx.lineTo(p.px+10,p.py+14); ctx.closePath(); ctx.fill();
+      ctx.beginPath(); ctx.arc(p.px-5,p.py+18,3,0,Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.arc(p.px+5,p.py+18,3,0,Math.PI*2); ctx.fill();
+    } else {
+      ctx.beginPath(); ctx.moveTo(p.px,p.py); ctx.lineTo(p.px-10,p.py+14); ctx.lineTo(p.px+10,p.py+14); ctx.closePath(); ctx.fill();
+      ctx.beginPath(); ctx.arc(p.px,p.py+18,4,0,Math.PI*2); ctx.fill();
+    }
+  }
+  
+  // Нагрузки и реакции — только на "structure"
+  if(mode==='structure'){
+    for(const ld of model.loads){
+      if(ld.type==='force' && ld.nodeId){
+        const n = model.nodes.find(n=>n.id===ld.nodeId); if(!n) continue;
+        const p = toPx(n.x,n.y);
+        const th = ld.angle * Math.PI/180;
+        const len = 35;
+        const ex = p.px + len*Math.cos(th);
+        const ey = p.py - len*Math.sin(th);
+        ctx.strokeStyle = '#e53935'; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.moveTo(ex,ey); ctx.lineTo(p.px,p.py); ctx.stroke();
+        ctx.fillStyle = '#e53935';
+        ctx.beginPath();
+        ctx.moveTo(p.px,p.py);
+        const ah = 0.35, al = 9;
+        ctx.lineTo(p.px + al*Math.cos(th+Math.PI-ah), p.py - al*Math.sin(th+Math.PI-ah));
+        ctx.lineTo(p.px + al*Math.cos(th+Math.PI+ah), p.py - al*Math.sin(th+Math.PI+ah));
+        ctx.closePath(); ctx.fill();
+        ctx.fillStyle = '#b71c1c'; ctx.font = '11px Arial';
+        ctx.fillText(ld.value.toFixed(1), ex-6, ey-4);
+      } else if(ld.type==='moment' && ld.nodeId){
+        const n = model.nodes.find(n=>n.id===ld.nodeId); if(!n) continue;
+        const p = toPx(n.x,n.y);
+        const r = 16;
+        const dir = ld.value > 0 ? 1 : -1;
+        ctx.strokeStyle = '#e53935'; ctx.lineWidth = 2;
+        ctx.beginPath();
+        const a0 = 0.4, a1 = 2*Math.PI - 0.4;
+        for(let t=0;t<=1;t+=0.02){
+          const a = a0 + dir*t*(a1-a0);
+          const x = p.px + r*Math.cos(a), y = p.py - r*Math.sin(a);
+          t===0 ? ctx.moveTo(x,y) : ctx.lineTo(x,y);
+        }
+        ctx.stroke();
+        ctx.fillStyle = '#b71c1c'; ctx.font = '11px Arial';
+        ctx.fillText(ld.value.toFixed(1), p.px+r+3, p.py-4);
+      } else if(ld.type==='distributed' && ld.rodId){
+        const rod = model.rods.find(r=>r.id===ld.rodId); if(!rod) continue;
+        const n1 = model.nodes.find(n=>n.id===rod.start);
+        const n2 = model.nodes.find(n=>n.id===rod.end);
+        if(!n1||!n2) continue;
+        const p1 = toPx(n1.x,n1.y), p2 = toPx(n2.x,n2.y);
+        const th = ld.angle * Math.PI/180;
+        const arrLen = 28, nAr = 6;
+        ctx.strokeStyle = '#e53935'; ctx.lineWidth = 1.5;
+        for(let i=0;i<nAr;i++){
+          const t = (i+0.5)/nAr;
+          const bx = p1.px + (p2.px-p1.px)*t;
+          const by = p1.py + (p2.py-p1.py)*t;
+          const ex = bx - arrLen*Math.cos(th);
+          const ey = by + arrLen*Math.sin(th);
+          ctx.beginPath(); ctx.moveTo(ex,ey); ctx.lineTo(bx,by); ctx.stroke();
+          ctx.fillStyle = '#e53935';
+          ctx.beginPath(); ctx.moveTo(bx,by);
+          ctx.lineTo(bx - 6*Math.cos(th+0.4), by + 6*Math.sin(th+0.4));
+          ctx.lineTo(bx - 6*Math.cos(th-0.4), by + 6*Math.sin(th-0.4));
+          ctx.closePath(); ctx.fill();
+        }
+      }
+    }
+    // Реакции
+    if(lastResult && !lastResult.error){
+      for(const s of model.supports){
+        const n = model.nodes.find(n=>n.id===s.nodeId); if(!n) continue;
+        const i = (s.nodeId-1)*3;
+        const Rx = lastResult.R[i], Ry = lastResult.R[i+1], Mz = lastResult.R[i+2];
+        const p = toPx(n.x,n.y);
+        const mag = Math.hypot(Rx,Ry);
+        if(mag > 0.001){
+          const ang = Math.atan2(Ry,Rx);
+          const len = 32;
+          const sx = p.px - len*Math.cos(ang)/2, sy = p.py + len*Math.sin(ang)/2;
+          const ex = p.px + len*Math.cos(ang)/2, ey = p.py - len*Math.sin(ang)/2;
+          ctx.strokeStyle = '#1565c0'; ctx.lineWidth = 2;
+          ctx.beginPath(); ctx.moveTo(sx,sy); ctx.lineTo(ex,ey); ctx.stroke();
+          ctx.fillStyle = '#1565c0';
+          ctx.beginPath();
+          const ah = 0.35, al = 8;
+          ctx.moveTo(ex,ey);
+          ctx.lineTo(ex - al*Math.cos(ang+ah), ey + al*Math.sin(ang+ah));
+          ctx.lineTo(ex - al*Math.cos(ang-ah), ey + al*Math.sin(ang-ah));
+          ctx.closePath(); ctx.fill();
+          ctx.font = '10px Arial';
+          ctx.fillText(mag.toFixed(1), ex+3, ey-4);
+        }
+        if(Math.abs(Mz) > 0.01){
+          ctx.fillStyle = '#1565c0'; ctx.font = '10px Arial';
+          ctx.fillText('M='+Mz.toFixed(1), p.px-20, p.py-15);
+        }
+      }
+    }
+  }
+  
+  ctx.restore();
+}
+
+/* ============ ОТЧЁТ ============ */
+function buildReport(res){
+  if(res.error) return 'Ошибка: ' + res.error;
+  let t = '=== РЕАКЦИИ ОПОР ===\n';
+  for(const s of model.supports){
+    const i = (s.nodeId-1)*3;
+    const Rx = res.R[i], Ry = res.R[i+1], Mz = res.R[i+2];
+    const typeName = {fixed:'заделка', hinge2:'шарнир', hinge1:'каток'}[s.type];
+    t += `Узел ${s.nodeId} (${typeName}): Rx=${Rx.toFixed(2)} кН, Ry=${Ry.toFixed(2)} кН`;
+    if(s.type==='fixed') t += `, M=${Mz.toFixed(2)} кН·м`;
+    t += '\n';
+  }
+  
+  t += '\n=== ПЕРЕМЕЩЕНИЯ УЗЛОВ ===\n';
+  for(let i=0;i<model.nodes.length;i++){
+    const n = model.nodes[i];
+    t += `Узел ${n.id}: ux=${res.u[i*3].toExponential(2)} м, uy=${res.u[i*3+1].toExponential(2)} м, θ=${res.u[i*3+2].toExponential(2)} рад\n`;
+  }
+  
+  t += '\n=== ЭКСТРЕМУМЫ ===\n';
+  let maxQ=0, maxM=0, locQ='', locM='';
+  for(const r of res.results){
+    for(const s of r.samples){
+      if(Math.abs(s.V) > Math.abs(maxQ)){ maxQ = s.V; locQ = `стержень ${r.rod.id}, s=${s.s.toFixed(2)} м`; }
+      if(Math.abs(s.M) > Math.abs(maxM)){ maxM = s.M; locM = `стержень ${r.rod.id}, s=${s.s.toFixed(2)} м`; }
+    }
+  }
+  t += `|Q|max = ${Math.abs(maxQ).toFixed(2)} кН (${locQ})\n`;
+  t += `|M|max = ${Math.abs(maxM).toFixed(2)} кН·м (${locM})\n`;
+  return t;
+}
+
+/* ============ ОБРАБОТЧИКИ ============ */
+const $ = id => document.getElementById(id);
+
+$('addNode').onclick = () => {
+  model.nodes.push({ id: nextNode++, x: parseFloat($('nodeX').value)||0, y: parseFloat($('nodeY').value)||0 });
+  render();
+};
+$('addRod').onclick = () => {
+  const st = +$('rodStart').value, en = +$('rodEnd').value;
+  if(!model.nodes.find(n=>n.id===st) || !model.nodes.find(n=>n.id===en)) return alert('Узел не найден');
+  model.rods.push({ id: nextRod++, start: st, end: en, EJ: parseFloat($('rodEJ').value)||1 });
+  render();
+};
+$('addSup').onclick = () => {
+  const nd = +$('supNode').value;
+  if(!model.nodes.find(n=>n.id===nd)) return alert('Узел не найден');
+  model.supports = model.supports.filter(s => s.nodeId !== nd);
+  model.supports.push({ nodeId: nd, type: $('supType').value });
+  render();
+};
+$('addLoad').onclick = () => {
+  const type = $('loadType').value;
+  const value = parseFloat($('loadVal').value) || 0;
+  const angle = parseFloat($('loadAng').value) || 0;
+  if(type === 'distributed'){
+    const rid = +$('loadRod').value;
+    if(!model.rods.find(r=>r.id===rid)) return alert('Стержень не найден');
+    model.loads.push({ type, rodId: rid, value, angle });
+  } else {
+    const nd = +$('loadNode').value;
+    if(!model.nodes.find(n=>n.id===nd)) return alert('Узел не найден');
+    model.loads.push({ type, nodeId: nd, value, angle });
+  }
+  render();
+};
+$('calc').onclick = () => {
+  const res = analyze();
+  lastResult = res;
+  const errEl = $('err');
+  if(res.error){ errEl.style.display = 'block'; errEl.textContent = res.error; }
+  else errEl.style.display = 'none';
+  $('report').textContent = buildReport(res);
+  render();
+};
+$('clear').onclick = () => {
+  if(!confirm('Очистить модель?')) return;
+  model.nodes = []; model.rods = []; model.supports = []; model.loads = [];
+  nextNode = 1; nextRod = 1; lastResult = null;
+  $('report').textContent = 'Модель очищена.';
+  render();
 };
 
-/* ============ НАВИГАЦИЯ ============ */
-function showScreen(id) {
-  document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
-  document.getElementById(id).classList.remove('hidden');
-}
-let currentCleanup = null;
-function goHome() {
-  if (currentCleanup) { currentCleanup(); currentCleanup = null; }
-  showScreen('lobby');
-}
-
-/* ============ ЗАПУСК ============ */
-document.addEventListener('DOMContentLoaded', () => {
-  Wallet.set(Wallet.get());
-
-  // Daily bonus
-  document.getElementById('daily-btn').addEventListener('click', () => {
-    const today = new Date().toDateString();
-    if (localStorage.getItem('vc_daily') === today) {
-      alert('Бонус уже получен сегодня. Приходи завтра!');
-      return;
-    }
-    localStorage.setItem('vc_daily', today);
-    Wallet.add(100);
-    alert('🎁 Ежедневный бонус: +100 фишек!');
-  });
-
-  document.querySelectorAll('.game-card').forEach(card => {
-    card.addEventListener('click', () => {
-      const g = card.dataset.game;
-      showScreen('game-' + g);
-    });
-  });
-
-  initCrash();
-  initRoulette();
-  initOlympus();
-  initSweet();
-  initCrazy();
-});
-
-/* ============ CRASH ============ */
-function initCrash() {
-  const canvas = document.getElementById('crash-canvas');
-  const ctx = canvas.getContext('2d');
-  const playBtn = document.getElementById('crash-play');
-  const cashBtn = document.getElementById('crash-cashout');
-  const info = document.getElementById('crash-info');
-  const betInput = document.getElementById('crash-bet');
-
-  let running = false, cashedOut = false, bet = 0, multiplier = 1, crashAt = 0, startTime = 0, points = [], raf = null;
-
-  function draw() {
-    ctx.fillStyle = '#0a0a1a';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    // сетка
-    ctx.strokeStyle = 'rgba(255,215,0,0.08)';
-    ctx.lineWidth = 1;
-    for (let i = 1; i < 6; i++) {
-      const y = canvas.height - i * (canvas.height / 6);
-      ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(canvas.width, y); ctx.stroke();
-    }
-    if (points.length > 1) {
-      ctx.strokeStyle = running ? '#ffd700' : '#ff4444';
-      ctx.lineWidth = 3;
-      ctx.beginPath();
-      ctx.moveTo(points[0].x, points[0].y);
-      for (let i = 1; i < points.length; i++) ctx.lineTo(points[i].x, points[i].y);
-      ctx.stroke();
-      const last = points[points.length - 1];
-      ctx.font = '26px serif';
-      ctx.fillText('✈️', last.x - 13, last.y - 5);
-    }
-    ctx.fillStyle = '#fff';
-    ctx.font = 'bold 32px system-ui';
-    ctx.textAlign = 'center';
-    ctx.fillText(multiplier.toFixed(2) + 'x', canvas.width / 2, 55);
-    ctx.textAlign = 'start';
-  }
-
-  function tick() {
-    if (!running) return;
-    const elapsed = (performance.now() - startTime) / 1000;
-    multiplier = Math.exp(elapsed * 0.7);
-    const x = Math.min(canvas.width - 15, 10 + elapsed * 90);
-    const y = Math.max(20, canvas.height - 20 - Math.log(multiplier) * 60);
-    points.push({ x, y });
-    draw();
-    if (multiplier >= crashAt) {
-      running = false;
-      playBtn.disabled = false;
-      cashBtn.classList.add('hidden');
-      draw();
-      if (!cashedOut) info.textContent = `💥 Вылет на ${crashAt.toFixed(2)}x — проигрыш ${bet}`;
-      return;
-    }
-    raf = requestAnimationFrame(tick);
-  }
-
-  function play() {
-    if (running) return;
-    bet = Math.max(1, parseInt(betInput.value) || 50);
-    if (!Wallet.sub(bet)) { info.textContent = '❌ Недостаточно фишек'; return; }
-    running = true; cashedOut = false; multiplier = 1; points = [];
-    const r = Math.random();
-    crashAt = Math.min(100, Math.max(1.01, 0.99 / (1 - r * 0.99)));
-    startTime = performance.now();
-    playBtn.disabled = true;
-    cashBtn.classList.remove('hidden');
-    info.textContent = 'Летим...';
-    requestAnimationFrame(tick);
-  }
-
-  function cashout() {
-    if (!running || cashedOut) return;
-    cashedOut = true;
-    const win = Math.floor(bet * multiplier);
-    Wallet.add(win);
-    info.textContent = `💰 Забрал на ${multiplier.toFixed(2)}x — выигрыш ${win}`;
-    running = false;
-    playBtn.disabled = false;
-    cashBtn.classList.add('hidden');
-    cancelAnimationFrame(raf);
-  }
-
-  playBtn.addEventListener('click', play);
-  cashBtn.addEventListener('click', cashout);
-  draw();
-  currentCleanup = () => { if (raf) cancelAnimationFrame(raf); running = false; };
-}
-
-/* ============ ROULETTE ============ */
-function initRoulette() {
-  const grid = document.getElementById('roulette-grid');
-  const resultEl = document.getElementById('roulette-result');
-  const spinBtn = document.getElementById('roulette-spin');
-  const betInput = document.getElementById('roulette-bet');
-  const RED = new Set([1,3,5,7,9,12,14,16,18,19,21,23,25,27,30,32,34,36]);
-
-  let selectedBet = null;
-  let lightning = {};
-  let spinning = false;
-
-  function colorOf(n) { return n === 0 ? 'green' : (RED.has(n) ? 'red' : 'black'); }
-
-  function renderGrid() {
-    grid.innerHTML = '';
-    for (let n = 0; n <= 36; n++) {
-      const el = document.createElement('div');
-      el.className = 'rn ' + colorOf(n);
-      if (lightning[n]) el.classList.add('mult');
-      el.textContent = n + (lightning[n] ? ` ⚡${lightning[n]}` : '');
-      el.dataset.n = n;
-      el.addEventListener('click', () => selectBet('number', n, el));
-      grid.appendChild(el);
-    }
-  }
-
-  function selectBet(type, value, el) {
-    if (spinning) return;
-    document.querySelectorAll('.rn.selected, .rbt.selected').forEach(e => e.classList.remove('selected'));
-    el.classList.add('selected');
-    selectedBet = { type, value };
-  }
-
-  document.querySelectorAll('.rbt').forEach(btn => {
-    btn.addEventListener('click', () => {
-      if (spinning) return;
-      selectBet(btn.dataset.bet, null, btn);
-    });
-  });
-
-  function spin() {
-    if (spinning) return;
-    if (!selectedBet) { resultEl.textContent = 'Выбери ставку'; return; }
-    const bet = Math.max(1, parseInt(betInput.value) || 50);
-    if (!Wallet.sub(bet)) { resultEl.textContent = '❌ Мало фишек'; return; }
-    spinning = true;
-    spinBtn.disabled = true;
-    resultEl.textContent = '🎲 Крутим...';
-    resultEl.style.color = '#fff';
-
-    // Lightning numbers
-    lightning = {};
-    const pool = Array.from({length: 36}, (_, i) => i + 1);
-    for (let i = 0; i < 5; i++) {
-      const idx = rand(pool.length);
-      const n = pool.splice(idx, 1)[0];
-      lightning[n] = [50, 100, 200, 500][rand(4)];
-    }
-    renderGrid();
-
-    let count = 0;
-    const interval = setInterval(() => {
-      resultEl.textContent = '🎲 ' + rand(37);
-      count++;
-      if (count > 18) {
-        clearInterval(interval);
-        finishSpin(bet);
-      }
-    }, 70);
-  }
-
-  function finishSpin(bet) {
-    const n = rand(37);
-    const b = selectedBet;
-    let win = 0;
-    let msg = `Выпало: ${n} (${colorOf(n)})`;
-    if (b.type === 'number') {
-      if (b.value === n) {
-        win = lightning[n] ? bet * lightning[n] : bet * 36;
-        if (lightning[n]) msg += ` ⚡ ×${lightning[n]}!`;
-      }
-    } else if (b.type === 'red' && colorOf(n) === 'red') win = bet * 2;
-    else if (b.type === 'black' && colorOf(n) === 'black') win = bet * 2;
-    else if (b.type === 'even' && n !== 0 && n % 2 === 0) win = bet * 2;
-    else if (b.type === 'odd' && n % 2 === 1) win = bet * 2;
-
-    if (win > 0) {
-      Wallet.add(win);
-      resultEl.textContent = msg + ` — ВЫИГРЫШ ${win} 🪙`;
-      resultEl.style.color = '#ffd700';
-    } else {
-      resultEl.textContent = msg + ` — проигрыш ${bet}`;
-      resultEl.style.color = '#ff6666';
-    }
-    spinning = false;
-    spinBtn.disabled = false;
-    setTimeout(() => { resultEl.style.color = '#fff'; }, 2500);
-  }
-
-  renderGrid();
-  spinBtn.addEventListener('click', spin);
-}
-
-/* ============ SLOTS (Olympus / Sweet) ============ */
-function createSlotGame(config) {
-  const gridEl = document.getElementById(config.gridId);
-  const infoEl = document.getElementById(config.infoId);
-  const spinBtn = document.getElementById(config.spinId);
-  const betInput = document.getElementById(config.betId);
-  const COLS = 6, ROWS = 5;
-  let grid = [], busy = false, currentBet = 0;
-
-  const randomSymbol = () => config.symbols[rand(config.symbols.length)];
-
-  function fill() {
-    grid = [];
-    for (let r = 0; r < ROWS; r++) {
-      const row = [];
-      for (let c = 0; c < COLS; c++) row.push(randomSymbol());
-      grid.push(row);
-    }
-  }
-
-  function render() {
-    gridEl.innerHTML = '';
-    for (let r = 0; r < ROWS; r++) {
-      for (let c = 0; c < COLS; c++) {
-        const el = document.createElement('div');
-        el.className = 'slot-cell';
-        el.textContent = grid[r][c];
-        el.dataset.r = r; el.dataset.c = c;
-        gridEl.appendChild(el);
-      }
-    }
-  }
-
-  function findClusters() {
-    const visited = Array.from({length: ROWS}, () => Array(COLS).fill(false));
-    const clusters = [];
-    for (let r = 0; r < ROWS; r++) {
-      for (let c = 0; c < COLS; c++) {
-        if (visited[r][c]) continue;
-        const sym = grid[r][c];
-        if (sym === config.scatterSymbol) continue;
-        const cluster = [];
-        const queue = [[r, c]];
-        visited[r][c] = true;
-        while (queue.length) {
-          const [rr, cc] = queue.shift();
-          cluster.push([rr, cc]);
-          for (const [dr, dc] of [[1,0],[-1,0],[0,1],[0,-1]]) {
-            const nr = rr + dr, nc = cc + dc;
-            if (nr >= 0 && nr < ROWS && nc >= 0 && nc < COLS && !visited[nr][nc] && grid[nr][nc] === sym) {
-              visited[nr][nc] = true;
-              queue.push([nr, nc]);
-            }
-          }
-        }
-        if (cluster.length >= config.minCluster) clusters.push({ symbol: sym, cells: cluster });
-      }
-    }
-    return clusters;
-  }
-
-  function countScatters() {
-    let n = 0;
-    for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) if (grid[r][c] === config.scatterSymbol) n++;
-    return n;
-  }
-
-  function payoutFor(symbol, count) {
-    const table = config.payouts[symbol];
-    if (!table) return 0;
-    const sorted = Object.entries(table).map(([k, v]) => [parseInt(k), v]).sort((a, b) => b[0] - a[0]);
-    for (const [min, val] of sorted) if (count >= min) return val;
-    return 0;
-  }
-
-  async function resolve() {
-    let totalWin = 0;
-    let iter = 0;
-    while (iter < 10) {
-      iter++;
-      const clusters = findClusters();
-      if (clusters.length === 0) break;
-      const winCells = new Set();
-      let iterWin = 0;
-      for (const cl of clusters) {
-        iterWin += payoutFor(cl.symbol, cl.cells.length) * currentBet;
-        for (const [r, c] of cl.cells) winCells.add(`${r},${c}`);
-      }
-      document.querySelectorAll('.slot-cell').forEach(el => {
-        if (winCells.has(`${el.dataset.r},${el.dataset.c}`)) el.classList.add('win');
-      });
-      await sleep(500);
-      for (const cl of clusters) for (const [r, c] of cl.cells) grid[r][c] = null;
-      // drop
-      for (let c = 0; c < COLS; c++) {
-        const col = [];
-        for (let r = ROWS - 1; r >= 0; r--) if (grid[r][c] !== null) col.push(grid[r][c]);
-        while (col.length < ROWS) col.push(randomSymbol());
-        for (let r = 0; r < ROWS; r++) grid[r][c] = col[ROWS - 1 - r];
-      }
-      totalWin += iterWin;
-      render();
-      await sleep(280);
-    }
-    return totalWin;
-  }
-
-  async function spin() {
-    if (busy) return;
-    const bet = Math.max(1, parseInt(betInput.value) || 50);
-    if (!Wallet.sub(bet)) { infoEl.textContent = '❌ Недостаточно фишек'; infoEl.style.color = '#ff6666'; return; }
-    busy = true; currentBet = bet;
-    spinBtn.disabled = true;
-    infoEl.textContent = 'Крутим...'; infoEl.style.color = '#fff';
-
-    fill(); render();
-    await sleep(350);
-    let totalWin = await resolve();
-
-    const scatters = countScatters();
-    if (scatters >= 4) {
-      infoEl.textContent = `⚡ ${scatters} скаттеров! ${config.freeSpins} фриспинов!`;
-      await sleep(700);
-      for (let fs = 0; fs < config.freeSpins; fs++) {
-        fill(); render();
-        await sleep(300);
-        totalWin += await resolve();
-        infoEl.textContent = `Фриспин ${fs + 1}/${config.freeSpins} · выигрыш: ${Math.floor(totalWin)}`;
-      }
-    }
-
-    totalWin = Math.floor(totalWin);
-    if (totalWin > 0) {
-      Wallet.add(totalWin);
-      infoEl.textContent = `🎉 Выигрыш: ${totalWin} 🪙`;
-      infoEl.style.color = '#ffd700';
-    } else {
-      infoEl.textContent = `Проигрыш ${bet}`;
-      infoEl.style.color = '#ff6666';
-    }
-    busy = false;
-    spinBtn.disabled = false;
-  }
-
-  spinBtn.addEventListener('click', spin);
-  fill(); render();
-}
-
-function initOlympus() {
-  createSlotGame({
-    gridId: 'olympus-grid', infoId: 'olympus-info',
-    spinId: 'olympus-spin', betId: 'olympus-bet',
-    symbols: ['💎','🔥','⭐','🏺','👑','⚡'],
-    scatterSymbol: '⚡',
-    minCluster: 8, freeSpins: 10,
-    payouts: {
-      '💎': { 8: 2, 12: 5, 16: 20 },
-      '🔥': { 8: 1.5, 12: 3, 16: 10 },
-      '⭐': { 8: 1.2, 12: 2, 16: 8 },
-      '🏺': { 8: 1, 12: 1.5, 16: 5 },
-      '👑': { 8: 0.8, 12: 1.2, 16: 4 }
-    }
-  });
-}
-
-function initSweet() {
-  createSlotGame({
-    gridId: 'sweet-grid', infoId: 'sweet-info',
-    spinId: 'sweet-spin', betId: 'sweet-bet',
-    symbols: ['🍬','🍭','🍎','🍇','🍌','❤️'],
-    scatterSymbol: '❤️',
-    minCluster: 8, freeSpins: 10,
-    payouts: {
-      '🍬': { 8: 2, 12: 5, 16: 20 },
-      '🍭': { 8: 1.5, 12: 3, 16: 10 },
-      '🍎': { 8: 1.2, 12: 2, 16: 8 },
-      '🍇': { 8: 1, 12: 1.5, 16: 5 },
-      '🍌': { 8: 0.8, 12: 1.2, 16: 4 }
-    }
-  });
-}
-
-/* ============ CRAZY TIME ============ */
-function initCrazy() {
-  const canvas = document.getElementById('crazy-wheel');
-  const ctx = canvas.getContext('2d');
-  const info = document.getElementById('crazy-info');
-  const spinBtn = document.getElementById('crazy-spin');
-  const betInput = document.getElementById('crazy-bet');
-
-  // 12 секторов с весами
-  const SEGMENTS = [
-    { label: '0', mult: 0, color: '#333' },
-    { label: '1', mult: 1, color: '#3498db' },
-    { label: '0', mult: 0, color: '#333' },
-    { label: '2', mult: 2, color: '#2ecc71' },
-    { label: '1', mult: 1, color: '#3498db' },
-    { label: '0', mult: 0, color: '#333' },
-    { label: 'BONUS', mult: 0, bonus: true, color: '#f39c12' },
-    { label: '1', mult: 1, color: '#3498db' },
-    { label: '0', mult: 0, color: '#333' },
-    { label: '2', mult: 2, color: '#2ecc71' },
-    { label: '1', mult: 1, color: '#3498db' },
-    { label: '0', mult: 0, color: '#333' }
-  ];
-
-  let rotation = 0, spinning = false;
-
-  function draw() {
-    const cx = canvas.width / 2, cy = canvas.height / 2, r = 180;
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    const n = SEGMENTS.length;
-    const arc = Math.PI * 2 / n;
-
-    ctx.save();
-    ctx.translate(cx, cy);
-    ctx.rotate(rotation);
-    for (let i = 0; i < n; i++) {
-      ctx.beginPath();
-      ctx.moveTo(0, 0);
-      ctx.arc(0, 0, r, i * arc, (i + 1) * arc);
-      ctx.closePath();
-      ctx.fillStyle = SEGMENTS[i].color;
-      ctx.fill();
-      ctx.strokeStyle = '#000';
-      ctx.stroke();
-      ctx.save();
-      ctx.rotate(i * arc + arc / 2);
-      ctx.textAlign = 'center';
-      ctx.fillStyle = '#fff';
-      ctx.font = 'bold 15px system-ui';
-      ctx.fillText(SEGMENTS[i].label, r * 0.68, 5);
-      ctx.restore();
-    }
-    ctx.restore();
-
-    // указатель
-    ctx.fillStyle = '#ffd700';
-    ctx.beginPath();
-    ctx.moveTo(cx - 16, 5);
-    ctx.lineTo(cx + 16, 5);
-    ctx.lineTo(cx, 42);
-    ctx.closePath();
-    ctx.fill();
-
-    // центр
-    ctx.beginPath();
-    ctx.arc(cx, cy, 30, 0, Math.PI * 2);
-    ctx.fillStyle = '#ffd700';
-    ctx.fill();
-    ctx.fillStyle = '#000';
-    ctx.font = 'bold 13px system-ui';
-    ctx.textAlign = 'center';
-    ctx.fillText('SPIN', cx, cy + 5);
-    ctx.textAlign = 'start';
-  }
-
-  function spin() {
-    if (spinning) return;
-    const bet = Math.max(1, parseInt(betInput.value) || 50);
-    if (!Wallet.sub(bet)) { info.textContent = '❌ Мало фишек'; info.style.color = '#ff6666'; return; }
-    spinning = true;
-    spinBtn.disabled = true;
-    info.textContent = '🎡 Крутим...'; info.style.color = '#fff';
-
-    const extra = Math.PI * 2 * (5 + Math.random() * 3) + Math.random() * Math.PI * 2;
-    const start = rotation;
-    const dur = 3200;
-    const t0 = performance.now();
-
-    function animate() {
-      const t = Math.min(1, (performance.now() - t0) / dur);
-      const ease = 1 - Math.pow(1 - t, 3);
-      rotation = start + extra * ease;
-      draw();
-      if (t < 1) requestAnimationFrame(animate);
-      else finish(bet);
-    }
-    requestAnimationFrame(animate);
-  }
-
-  function finish(bet) {
-    const n = SEGMENTS.length;
-    const arc = Math.PI * 2 / n;
-    let local = -Math.PI / 2 - rotation;
-    local = ((local % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2);
-    const idx = Math.floor(local / arc) % n;
-    const seg = SEGMENTS[idx];
-
-    if (seg.bonus) {
-      const opts = [5, 10, 15, 20];
-      const m = opts[rand(opts.length)];
-      const win = bet * m;
-      Wallet.add(win);
-      info.textContent = `🎁 BONUS ×${m} — выигрыш ${win}!`;
-      info.style.color = '#ffd700';
-    } else if (seg.mult === 0) {
-      info.textContent = `😢 Выпал сектор «0» — проигрыш ${bet}`;
-      info.style.color = '#ff6666';
-    } else if (seg.mult === 1) {
-      Wallet.add(bet);
-      info.textContent = `↩️ Сектор «1» — вернул ставку ${bet}`;
-      info.style.color = '#fff';
-    } else {
-      const win = bet * seg.mult;
-      Wallet.add(win);
-      info.textContent = `🎉 Сектор «${seg.mult}» — выигрыш ${win}!`;
-      info.style.color = '#ffd700';
-    }
-    spinning = false;
-    spinBtn.disabled = false;
-    setTimeout(() => { info.style.color = '#ffd700'; }, 3000);
-  }
-
-  spinBtn.addEventListener('click', spin);
-  draw();
-}
+/* ============ ПРИМЕР ПО УМОЛЧАНИЮ ============ */
+model.nodes = [
+  { id: 1, x: 0, y: 0 },
+  { id: 2, x: 3, y: 0 },
+  { id: 3, x: 6, y: 0 }
+];
+nextNode = 4;
+model.rods = [
+  { id: 1, start: 1, end: 2, EJ: 1 },
+  { id: 2, start: 2, end: 3, EJ: 1 }
+];
+nextRod = 3;
+model.supports = [
+  { nodeId: 1, type: 'hinge2' },
+  { nodeId: 3, type: 'hinge1' }
+];
+model.loads = [
+  { type: 'force', nodeId: 2, value: 10, angle: -90 }
+];
+render();
 </script>
 </body>
 </html>
